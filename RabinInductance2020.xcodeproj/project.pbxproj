@@ -10,6 +10,13 @@
 		F5E6BA0B25332B0600F522C6 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5E6BA0A25332B0600F522C6 /* AppDelegate.swift */; };
 		F5E6BA0D25332B0700F522C6 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = F5E6BA0C25332B0700F522C6 /* Assets.xcassets */; };
 		F5E6BA1025332B0700F522C6 /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = F5E6BA0E25332B0700F522C6 /* MainMenu.xib */; };
+		F5E6BA1C25332B6300F522C6 /* libgsl.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F5E6BA1B25332B6300F522C6 /* libgsl.a */; };
+		F5E6BA2425332C3300F522C6 /* AppController.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5E6BA2325332C3300F522C6 /* AppController.swift */; };
+		F5E6BA2725332D5300F522C6 /* Phase.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5E6BA2625332D5300F522C6 /* Phase.swift */; };
+		F5E6BA2A25332DD000F522C6 /* Coil.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5E6BA2925332DD000F522C6 /* Coil.swift */; };
+		F5E6BA2D25332E4700F522C6 /* Section.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5E6BA2C25332E4700F522C6 /* Section.swift */; };
+		F5E6BA312533324100F522C6 /* GlobalDefs.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5E6BA2F2533324100F522C6 /* GlobalDefs.swift */; };
+		F5E6BA322533324100F522C6 /* PCH_Defs.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5E6BA302533324100F522C6 /* PCH_Defs.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -19,6 +26,14 @@
 		F5E6BA0F25332B0700F522C6 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/MainMenu.xib; sourceTree = "<group>"; };
 		F5E6BA1125332B0700F522C6 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		F5E6BA1225332B0700F522C6 /* RabinInductance2020.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = RabinInductance2020.entitlements; sourceTree = "<group>"; };
+		F5E6BA1B25332B6300F522C6 /* libgsl.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libgsl.a; path = ../../../Documents/MyProjects/GNU_Scientific_Library/lib/libgsl.a; sourceTree = "<group>"; };
+		F5E6BA1E25332BC700F522C6 /* RabinInductance2020-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "RabinInductance2020-Bridging-Header.h"; sourceTree = "<group>"; };
+		F5E6BA2325332C3300F522C6 /* AppController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppController.swift; sourceTree = "<group>"; };
+		F5E6BA2625332D5300F522C6 /* Phase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Phase.swift; sourceTree = "<group>"; };
+		F5E6BA2925332DD000F522C6 /* Coil.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Coil.swift; sourceTree = "<group>"; };
+		F5E6BA2C25332E4700F522C6 /* Section.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Section.swift; sourceTree = "<group>"; };
+		F5E6BA2F2533324100F522C6 /* GlobalDefs.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = GlobalDefs.swift; path = ../../../../Dropbox/MyProjects/GlobalDefs.swift; sourceTree = "<group>"; };
+		F5E6BA302533324100F522C6 /* PCH_Defs.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = PCH_Defs.swift; path = ../../../../Dropbox/MyProjects/PCH_Defs.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -26,6 +41,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F5E6BA1C25332B6300F522C6 /* libgsl.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -37,6 +53,7 @@
 			children = (
 				F5E6BA0925332B0600F522C6 /* RabinInductance2020 */,
 				F5E6BA0825332B0600F522C6 /* Products */,
+				F5E6BA1925332B3100F522C6 /* Frameworks */,
 			);
 			sourceTree = "<group>";
 		};
@@ -52,12 +69,27 @@
 			isa = PBXGroup;
 			children = (
 				F5E6BA0A25332B0600F522C6 /* AppDelegate.swift */,
+				F5E6BA2F2533324100F522C6 /* GlobalDefs.swift */,
+				F5E6BA302533324100F522C6 /* PCH_Defs.swift */,
+				F5E6BA2325332C3300F522C6 /* AppController.swift */,
+				F5E6BA2625332D5300F522C6 /* Phase.swift */,
+				F5E6BA2925332DD000F522C6 /* Coil.swift */,
+				F5E6BA2C25332E4700F522C6 /* Section.swift */,
 				F5E6BA0C25332B0700F522C6 /* Assets.xcassets */,
 				F5E6BA0E25332B0700F522C6 /* MainMenu.xib */,
 				F5E6BA1125332B0700F522C6 /* Info.plist */,
 				F5E6BA1225332B0700F522C6 /* RabinInductance2020.entitlements */,
+				F5E6BA1E25332BC700F522C6 /* RabinInductance2020-Bridging-Header.h */,
 			);
 			path = RabinInductance2020;
+			sourceTree = "<group>";
+		};
+		F5E6BA1925332B3100F522C6 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				F5E6BA1B25332B6300F522C6 /* libgsl.a */,
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -91,6 +123,7 @@
 				TargetAttributes = {
 					F5E6BA0625332B0600F522C6 = {
 						CreatedOnToolsVersion = 12.0;
+						LastSwiftMigration = 1200;
 					};
 				};
 			};
@@ -129,7 +162,13 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F5E6BA2D25332E4700F522C6 /* Section.swift in Sources */,
+				F5E6BA2A25332DD000F522C6 /* Coil.swift in Sources */,
+				F5E6BA322533324100F522C6 /* PCH_Defs.swift in Sources */,
 				F5E6BA0B25332B0600F522C6 /* AppDelegate.swift in Sources */,
+				F5E6BA2425332C3300F522C6 /* AppController.swift in Sources */,
+				F5E6BA312533324100F522C6 /* GlobalDefs.swift in Sources */,
+				F5E6BA2725332D5300F522C6 /* Phase.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -198,6 +237,8 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
+				HEADER_SEARCH_PATHS = "\"$(SRCROOT)/../../../Documents/MyProjects/GNU_Scientific_Library/include\"";
+				LIBRARY_SEARCH_PATHS = "\"$(SRCROOT)/../../../Documents/MyProjects/GNU_Scientific_Library/lib\"";
 				MACOSX_DEPLOYMENT_TARGET = 10.15;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
@@ -253,6 +294,8 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
+				HEADER_SEARCH_PATHS = "\"$(SRCROOT)/../../../Documents/MyProjects/GNU_Scientific_Library/include\"";
+				LIBRARY_SEARCH_PATHS = "\"$(SRCROOT)/../../../Documents/MyProjects/GNU_Scientific_Library/lib\"";
 				MACOSX_DEPLOYMENT_TARGET = 10.15;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
@@ -267,6 +310,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = RabinInductance2020/RabinInductance2020.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
@@ -279,6 +323,8 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.huberistech.RabinInductance2020;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_OBJC_BRIDGING_HEADER = "RabinInductance2020/RabinInductance2020-Bridging-Header.h";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
 			};
 			name = Debug;
@@ -288,6 +334,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = RabinInductance2020/RabinInductance2020.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
@@ -300,6 +347,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.huberistech.RabinInductance2020;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_OBJC_BRIDGING_HEADER = "RabinInductance2020/RabinInductance2020-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
 			};
 			name = Release;
