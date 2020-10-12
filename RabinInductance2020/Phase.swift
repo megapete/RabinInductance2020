@@ -9,15 +9,13 @@ import Foundation
 
 class Phase:Codable {
     
-    let realWindowHeight:Double
-    let coreRadius:Double
+    let core:Core
     
     let coils:[Coil]
     
     init(realWindowHt:Double, coreRadius:Double, coils:[Coil]) {
         
-        self.realWindowHeight = realWindowHt
-        self.coreRadius = coreRadius
+        self.core = Core(realWindowHt: realWindowHt, radius: coreRadius)
         self.coils = coils
     }
 }

@@ -11,9 +11,7 @@ class AppController: NSObject {
 
     @IBAction func handleTest1(_ sender: Any) {
         
-        let testCoil = Coil(coilID: 1, name: "Nothing", innerRadius: 0.5, outerRadius: 0.75, J: 3.0E-6)
         
-        DLog("M(200):\(testCoil.M0(x: 200.0))")
     }
     
 }
