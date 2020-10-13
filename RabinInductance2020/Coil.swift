@@ -11,7 +11,7 @@ import Accelerate
 fileprivate let relError = 1.0E-8
 fileprivate let absError = 1.0E-12
 
-fileprivate let convergenceIterations = 200
+let convergenceIterations = 200
 
 class Coil:Codable {
     
@@ -19,9 +19,33 @@ class Coil:Codable {
     let name:String
     let innerRadius:Double
     let outerRadius:Double
-    let J:Double
+    let I:Double
     
-    struct ScaledReturnType:Codable {
+    struct ScaledReturnType:Codable, CustomStringConvertible {
+        
+        var description: String {
+            get {
+                
+                var result = "{"
+                var isFirst = true
+                for nextTerm in self.terms
+                {
+                    if !isFirst
+                    {
+                        result.append(" + ")
+                    }
+                    
+                    result.append("[e^\(nextTerm.scale)(\(nextTerm.scaledValue))]")
+                    
+                    isFirst = false
+                }
+                
+                result.append("}")
+                
+                return result
+            }
+        }
+        
         
         var count:Int {
             get {
@@ -57,6 +81,18 @@ class Coil:Codable {
             }
         }
         
+        static func * (lhs:Double, rhs:ScaledReturnType) -> ScaledReturnType
+        {
+            var newTerms:[Coil.ScaledReturnType.Term] = []
+            
+            for nextTerm in rhs.terms
+            {
+                newTerms.append(Coil.ScaledReturnType.Term(scale: nextTerm.scale, scaledValue: lhs * nextTerm.scaledValue))
+            }
+            
+            return ScaledReturnType(terms: newTerms)
+        }
+        
         static func * (lhs:ScaledReturnType, rhs:ScaledReturnType) -> ScaledReturnType
         {
             var newTerms:[Coil.ScaledReturnType.Term] = []
@@ -77,6 +113,17 @@ class Coil:Codable {
             
             return ScaledReturnType(terms: newTerms)
         }
+        
+        init(terms:[Term])
+        {
+            self.terms = terms
+        }
+        
+        init(number:Double)
+        {
+            let numTerm = Term(scale: log(number), scaledValue: 1.0)
+            self.terms = [numTerm]
+        }
     }
     
     var Cn:[ScaledReturnType] = []
@@ -90,14 +137,17 @@ class Coil:Codable {
     
     var sections:[Section]
     
-    init(coilID:Int, name:String, innerRadius:Double, outerRadius:Double, J:Double, sections:[Section] = [], core:Core) {
+    let core:Core
+    
+    init(coilID:Int, name:String, innerRadius:Double, outerRadius:Double, I:Double, sections:[Section] = [], core:Core) {
         
         self.coilID = coilID
         self.name = name
         self.innerRadius = innerRadius
         self.outerRadius = outerRadius
-        self.J = J
+        self.I = I
         self.sections = sections
+        self.core = core
         
         for n in 1...convergenceIterations
         {
@@ -126,9 +176,24 @@ class Coil:Codable {
             self.Fn.append(newFn)
             self.En.append(newEn)
             
-            self.I1n.append(Coil.IntegralOf_tI1_t_dt(from: x1, to: x2))
-            self.L1n.append(Coil.IntegralOf_tL1_t_dt(from: x1, to: x2))
+            let newI1 = Coil.IntegralOf_tI1_t_dt(from: x1, to: x2)
+            self.I1n.append(newI1)
+            let newL1 = Coil.IntegralOf_tL1_t_dt(from: x1, to: x2)
+            self.L1n.append(newL1)
+            
+            if n % 50 == 0
+            {
+                print("Cn: \(newCn)")
+                print("Dn: \(newDn)")
+                print("Fn: \(newFn)")
+                print("En: \(newEn)")
+                print("I1n: \(newI1)")
+                print("L1n: \(newL1)")
+                
+            }
         }
+        
+        
     }
     
     /// DelVecchio 3e, Eq. 9.61(a)
@@ -154,8 +219,8 @@ class Coil:Codable {
         let x1TermValue = x1 == 0 ? π / 2.0 :  π / 2.0 * x1 * Coil.M1(x: x1) * gsl_sf_bessel_K0_scaled(x1) + Coil.M0(x: x1) * gsl_sf_bessel_K1_scaled(x1)
         let x2TermValue = -π / 2.0 * x2 * (Coil.M1(x: x2) * gsl_sf_bessel_K0_scaled(x2) + Coil.M0(x: x2) * gsl_sf_bessel_K1_scaled(x2))
         
-        var terms = [ScaledReturnType.Term(scale: x1, scaledValue: x1TermValue)]
-        terms.append(ScaledReturnType.Term(scale: x2, scaledValue: x2TermValue))
+        var terms = [ScaledReturnType.Term(scale: -x1, scaledValue: x1TermValue)]
+        terms.append(ScaledReturnType.Term(scale: -x2, scaledValue: x2TermValue))
         
         return ScaledReturnType(terms: terms)
     }
