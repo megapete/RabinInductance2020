@@ -21,35 +21,72 @@ class Coil:Codable {
     let outerRadius:Double
     let J:Double
     
-    struct IntegralReturnType:Codable {
+    struct ScaledReturnType:Codable {
         
-        let scale1:Double
-        let scaledTerm1:Double
-        
-        var unscaledTerm1:Double {
+        var count:Int {
             get {
-                return exp(scale1) * scaledTerm1
+                return self.terms.count
             }
         }
         
-        let scale2:Double
-        let scaledTerm2:Double
-        
-        var unscaledTerm2:Double {
-            get {
-                return exp(scale2) * scaledTerm2
+        struct Term:Codable {
+            
+            let scale:Double
+            let scaledValue:Double
+            
+            var trueValue:Double {
+                get {
+                    return scale * scaledValue
+                }
             }
         }
         
-        var unscaledResult:Double {
+        let terms:[Term]
+        
+        var totalTrueValue:Double {
             get {
-                return unscaledTerm1 + unscaledTerm2
+                
+                var result = 0.0
+                
+                for nextTerm in self.terms
+                {
+                    result += nextTerm.trueValue
+                }
+                
+                return result
             }
+        }
+        
+        static func * (lhs:ScaledReturnType, rhs:ScaledReturnType) -> ScaledReturnType
+        {
+            var newTerms:[Coil.ScaledReturnType.Term] = []
+            // each member of the lhs must be multiplied by each member of the rhs
+            for nextLhsTerm in lhs.terms
+            {
+                var scale = nextLhsTerm.scale
+                var value = nextLhsTerm.scaledValue
+                
+                for nextRhsTerm in rhs.terms
+                {
+                    scale += nextRhsTerm.scale
+                    value *= nextRhsTerm.scaledValue
+                }
+                
+                newTerms.append(Coil.ScaledReturnType.Term(scale: scale, scaledValue: value))
+            }
+            
+            return ScaledReturnType(terms: newTerms)
         }
     }
     
-    var Cn:[IntegralReturnType] = []
-    var Dn:[IntegralReturnType] = []
+    var Cn:[ScaledReturnType] = []
+    var Dn:[ScaledReturnType] = []
+    var Fn:[ScaledReturnType] = []
+    var En:[ScaledReturnType] = []
+    
+    // Integrals whose values we'll need
+    var I1n:[ScaledReturnType] = []
+    var L1n:[ScaledReturnType] = []
     
     var sections:[Section]
     
@@ -72,31 +109,68 @@ class Coil:Codable {
             let newCn = Coil.IntegralOf_tK1_t_dt(from: x1, to: x2)
             
             let i0k0_scaled = gsl_sf_bessel_I0_scaled(xc) / gsl_sf_bessel_K0_scaled(xc)
-            let newDn = Coil.IntegralReturnType(scale1: 2 * xc + newCn.scale1, scaledTerm1: i0k0_scaled * newCn.scaledTerm1, scale2: 2 * xc + newCn.scale2, scaledTerm2: i0k0_scaled * newCn.scaledTerm2)
+            
+            var dTerms = [ScaledReturnType.Term(scale: 2 * xc + newCn.terms[0].scale, scaledValue: i0k0_scaled * newCn.terms[0].scaledValue), ScaledReturnType.Term(scale: 2 * xc + newCn.terms[1].scale, scaledValue: i0k0_scaled * newCn.terms[1].scaledValue)]
+            
+            let newDn = ScaledReturnType(terms: dTerms)
+            
+            let integralI_scaled = Coil.IntegralOf_tI1_t_dt(from: 0, to: x1)
+            dTerms.append(ScaledReturnType.Term(scale: integralI_scaled.terms[1].scale, scaledValue: -integralI_scaled.terms[1].scaledValue))
+            
+            let newFn = ScaledReturnType(terms: dTerms)
+            
+            let newEn = Coil.IntegralOf_tK1_t_dt(from: 0, to: x2)
+            
+            self.Cn.append(newCn)
+            self.Dn.append(newDn)
+            self.Fn.append(newFn)
+            self.En.append(newEn)
+            
+            self.I1n.append(Coil.IntegralOf_tI1_t_dt(from: x1, to: x2))
+            self.L1n.append(Coil.IntegralOf_tL1_t_dt(from: x1, to: x2))
         }
     }
     
     /// DelVecchio 3e, Eq. 9.61(a)
-    static func IntegralOf_tI1_t_dt(from x1:Double, to x2:Double) -> IntegralReturnType
+    static func IntegralOf_tI1_t_dt(from x1:Double, to x2:Double) -> ScaledReturnType
     {
         // Return the scaled terms from the calculation of the integral.
         
-        let x1Term = x1 == 0 ? 0 : -π / 2.0 * x1 * (Coil.M1(x: x1) * gsl_sf_bessel_I0_scaled(x1) - Coil.M0(x: x1) * gsl_sf_bessel_I1_scaled(x1))
-        let x2Term = π / 2.0 * x2 * Coil.M1(x: x2) * gsl_sf_bessel_I0_scaled(x2) - Coil.M0(x: x2) * gsl_sf_bessel_I1_scaled(x2)
+        let x1TermValue = x1 == 0 ? 0 : -π / 2.0 * x1 * (Coil.M1(x: x1) * gsl_sf_bessel_I0_scaled(x1) - Coil.M0(x: x1) * gsl_sf_bessel_I1_scaled(x1))
+        let x2TermValue = π / 2.0 * x2 * Coil.M1(x: x2) * gsl_sf_bessel_I0_scaled(x2) - Coil.M0(x: x2) * gsl_sf_bessel_I1_scaled(x2)
         
-        return IntegralReturnType(scale1: x1, scaledTerm1: x1Term, scale2: x2, scaledTerm2: x2Term)
+        var terms = [ScaledReturnType.Term(scale: x1, scaledValue: x1TermValue)]
+        terms.append(ScaledReturnType.Term(scale: x2, scaledValue: x2TermValue))
+        
+        return ScaledReturnType(terms: terms)
+        
     }
     
     /// DelVecchio 3e, Eq. 9.61(b)
-    static func IntegralOf_tK1_t_dt(from x1:Double, to x2:Double) -> IntegralReturnType
+    static func IntegralOf_tK1_t_dt(from x1:Double, to x2:Double) -> ScaledReturnType
     {
         // Return the scaled terms from the calculation of the integral. Note that it is the calling routine's responsibility to multiply each term by e^-xi, then ADD the two terms upon return. Note that the function has been set up so that this will even work if x1=0
         
-        let x1Term = x1 == 0 ? π / 2.0 :  π / 2.0 * x1 * Coil.M1(x: x1) * gsl_sf_bessel_K0_scaled(x1) + Coil.M0(x: x1) * gsl_sf_bessel_K1_scaled(x1)
-        let x2Term = -π / 2.0 * x2 * (Coil.M1(x: x2) * gsl_sf_bessel_K0_scaled(x2) + Coil.M0(x: x2) * gsl_sf_bessel_K1_scaled(x2))
+        let x1TermValue = x1 == 0 ? π / 2.0 :  π / 2.0 * x1 * Coil.M1(x: x1) * gsl_sf_bessel_K0_scaled(x1) + Coil.M0(x: x1) * gsl_sf_bessel_K1_scaled(x1)
+        let x2TermValue = -π / 2.0 * x2 * (Coil.M1(x: x2) * gsl_sf_bessel_K0_scaled(x2) + Coil.M0(x: x2) * gsl_sf_bessel_K1_scaled(x2))
         
-        return IntegralReturnType(scale1: -x1, scaledTerm1: x1Term, scale2: -x2, scaledTerm2: x2Term)
+        var terms = [ScaledReturnType.Term(scale: x1, scaledValue: x1TermValue)]
+        terms.append(ScaledReturnType.Term(scale: x2, scaledValue: x2TermValue))
+        
+        return ScaledReturnType(terms: terms)
     }
+    
+    /// DelVecchio 3e, Eq. 9.64
+    static func IntegralOf_tL1_t_dt(from x1:Double, to x2:Double) -> ScaledReturnType
+    {
+        let unscaledValue = x1 * Coil.M0(x: x1) - x2 * Coil.M0(x: x2) + (x1 * x1 - x2 * x2) / π + Coil.IntegralOf_M0_t_dt(from: x1, to: x2)
+        
+        var terms = [ScaledReturnType.Term(scale: 0, scaledValue: unscaledValue)]
+        terms.append(contentsOf: Coil.IntegralOf_tI1_t_dt(from: x1, to: x2).terms)
+        
+        return ScaledReturnType(terms: terms)
+    }
+    
     
     /// DelVecchio 3e, Eq. 9.59(a)
     static func M0(x:Double) -> Double
