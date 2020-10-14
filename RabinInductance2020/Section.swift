@@ -9,6 +9,17 @@ import Foundation
 
 class Section:Codable {
     
+    private static var nextSerialNumberStore:Int = 0
+    
+    static var nextSerialNumber:Int {
+        get {
+            
+            let nextNum = Section.nextSerialNumberStore
+            Section.nextSerialNumberStore += 1
+            return nextNum
+        }
+    }
+    
     let sectionID:Int
     let zMin:Double
     let zMax:Double
@@ -83,14 +94,52 @@ class Section:Codable {
             
             let Jn = self.Jn(n: n, J: J, L: L)
             
+            if i % 50 == 0
+            {
+                print("Cn: \(coil.Cn[i])")
+                print("Dn: \(coil.Dn[i])")
+                print("Fn: \(coil.Fn[i])")
+                print("En: \(coil.En[i])")
+                print("I1n: \(coil.I1n[i])")
+                print("L1n: \(coil.L1n[i])")
+            }
+            
             let firstProduct = coil.En[i] * coil.I1n[i]
             let secondProduct = coil.Fn[i] * coil.Cn[i]
             let thirdProduct = (π / 2) * coil.L1n[i]
+            
+            if i % 50 == 0
+            {
+                let m4 = pow(m, -4)
+                let expM = log(m) * -4
+                print("m^-4: \(pow(m, -4)) = e^\(expM)")
+                print("First: \(firstProduct)")
+                print("Second: \(secondProduct)")
+                print("Third: \(thirdProduct)")
+            }
             
         }
         
         return result
     }
     
+    /// Convenience routine for testing
+    func SplitSection(numSections:Int) -> [Section]
+    {
+        let zPerSection = (self.zMax - self.zMin) / Double(numSections)
+        var currentLowZ = self.zMin
+        
+        var result:[Section] = []
+        
+        for _ in 0..<numSections
+        {
+            let newSection = Section(sectionID: Section.nextSerialNumber, zMin: currentLowZ, zMax: currentLowZ + zPerSection, N: self.N / Double(numSections), inNode: 0, outNode: 0, parent: self.parent)
+            
+            result.append(newSection)
+            currentLowZ += zPerSection
+        }
+        
+        return result
+    }
     
 }

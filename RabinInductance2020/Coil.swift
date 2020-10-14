@@ -181,6 +181,7 @@ class Coil:Codable {
             let newL1 = Coil.IntegralOf_tL1_t_dt(from: x1, to: x2)
             self.L1n.append(newL1)
             
+            /*
             if n % 50 == 0
             {
                 print("Cn: \(newCn)")
@@ -191,6 +192,7 @@ class Coil:Codable {
                 print("L1n: \(newL1)")
                 
             }
+            */
         }
         
         
