@@ -94,6 +94,8 @@ class Section:Codable {
             
             let Jn = self.Jn(n: n, J: J, L: L)
             
+            let J_M_exp = log(fabs(Jn)) * 2 + log(m) * -4
+            
             if i % 50 == 0
             {
                 print("Cn: \(coil.Cn[i])")
@@ -110,6 +112,7 @@ class Section:Codable {
             
             if i % 50 == 0
             {
+                print("J^2: \(Jn * Jn) = e^\(log(fabs(Jn)) * 2)")
                 let m4 = pow(m, -4)
                 let expM = log(m) * -4
                 print("m^-4: \(pow(m, -4)) = e^\(expM)")
