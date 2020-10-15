@@ -88,14 +88,17 @@ class Section:Codable {
             let n = i + 1
             
             let m = Double(n) * π / L
-            let x1 = m * r1
-            let x2 = m * r2
-            let xc = m * coil.core.radius
+            // let x1 = m * r1
+            // let x2 = m * r2
+            // let xc = m * coil.core.radius
             
             let Jn = self.Jn(n: n, J: J, L: L)
             
             let J_M_exp = log(fabs(Jn)) * 2 + log(m) * -4
+            let J_M_scaled = Coil.ScaledReturnType(terms: [Coil.ScaledReturnType.Term(scale: J_M_exp, scaledValue: 1.0)])
+            // print("J^2/m^4: e^\(J_M_exp)")
             
+            /*
             if i % 50 == 0
             {
                 print("Cn: \(coil.Cn[i])")
@@ -104,24 +107,36 @@ class Section:Codable {
                 print("En: \(coil.En[i])")
                 print("I1n: \(coil.I1n[i])")
                 print("L1n: \(coil.L1n[i])")
-            }
+            } */
             
-            let firstProduct = coil.En[i] * coil.I1n[i]
-            let secondProduct = coil.Fn[i] * coil.Cn[i]
-            let thirdProduct = (π / 2) * coil.L1n[i]
+            let firstProduct = J_M_scaled * (coil.En[i] * coil.I1n[i])
+            let secondProduct = J_M_scaled * (coil.Fn[i] * coil.Cn[i])
+            let thirdProduct = (π / 2) * (J_M_scaled * coil.L1n[i])
             
+            sum += firstProduct.totalTrueValue + secondProduct.totalTrueValue - thirdProduct.totalTrueValue
+            
+            /*
             if i % 50 == 0
             {
                 print("J^2: \(Jn * Jn) = e^\(log(fabs(Jn)) * 2)")
                 let m4 = pow(m, -4)
                 let expM = log(m) * -4
+                print("J^2/m^4: e^\(log(fabs(Jn)) * 2 + expM)")
                 print("m^-4: \(pow(m, -4)) = e^\(expM)")
                 print("First: \(firstProduct)")
                 print("Second: \(secondProduct)")
                 print("Third: \(thirdProduct)")
-            }
+            } */
             
         }
+        
+        print("Sum: \(sum)")
+        
+        let multiplier = π * µ0 * L / (I * I)
+        
+        result += multiplier * sum
+        
+        print("Result: \(result)")
         
         return result
     }
