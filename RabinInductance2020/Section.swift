@@ -88,55 +88,106 @@ class Section:Codable {
             let n = i + 1
             
             let m = Double(n) * π / L
-            // let x1 = m * r1
-            // let x2 = m * r2
-            // let xc = m * coil.core.radius
             
             let Jn = self.Jn(n: n, J: J, L: L)
             
-            let J_M_exp = log(fabs(Jn)) * 2 + log(m) * -4
-            let J_M_scaled = Coil.ScaledReturnType(terms: [Coil.ScaledReturnType.Term(scale: J_M_exp, scaledValue: 1.0)])
-            // print("J^2/m^4: e^\(J_M_exp)")
+            // I was wondering why DelVecchio 3e, Eq. 9.98 was miultiplying the second term by N^2/N^2 and I think that the reason is to stabilize the numbers in the sum.
+            let J_M_NI_exp = log(fabs(Jn)) * 2 + log(m) * -4 + log(N * I) * -2
+            let J_M_NI_scaled = Coil.ScaledReturnType(terms: [Coil.ScaledReturnType.Term(scale: J_M_NI_exp, scaledValue: 1.0)])
             
-            /*
-            if i % 50 == 0
-            {
-                print("Cn: \(coil.Cn[i])")
-                print("Dn: \(coil.Dn[i])")
-                print("Fn: \(coil.Fn[i])")
-                print("En: \(coil.En[i])")
-                print("I1n: \(coil.I1n[i])")
-                print("L1n: \(coil.L1n[i])")
-            } */
+            let firstProduct = J_M_NI_scaled * (coil.En[i] * coil.I1n[i])
+            let secondProduct = J_M_NI_scaled * (coil.Fn[i] * coil.Cn[i])
+            let thirdProduct = (π / 2) * (J_M_NI_scaled * coil.L1n[i])
             
-            let firstProduct = J_M_scaled * (coil.En[i] * coil.I1n[i])
-            let secondProduct = J_M_scaled * (coil.Fn[i] * coil.Cn[i])
-            let thirdProduct = (π / 2) * (J_M_scaled * coil.L1n[i])
+            let scaledSum = firstProduct + secondProduct - thirdProduct
+            let checkSum1 = scaledSum.totalTrueValue
+            // let checkSum2 = firstProduct.totalTrueValue + secondProduct.totalTrueValue - thirdProduct.totalTrueValue
             
-            sum += firstProduct.totalTrueValue + secondProduct.totalTrueValue - thirdProduct.totalTrueValue
-            
-            /*
-            if i % 50 == 0
-            {
-                print("J^2: \(Jn * Jn) = e^\(log(fabs(Jn)) * 2)")
-                let m4 = pow(m, -4)
-                let expM = log(m) * -4
-                print("J^2/m^4: e^\(log(fabs(Jn)) * 2 + expM)")
-                print("m^-4: \(pow(m, -4)) = e^\(expM)")
-                print("First: \(firstProduct)")
-                print("Second: \(secondProduct)")
-                print("Third: \(thirdProduct)")
-            } */
+            sum += checkSum1
             
         }
         
         print("Sum: \(sum)")
         
-        let multiplier = π * µ0 * L / (I * I)
+        let multiplier = π * µ0 * L * N * N
         
         result += multiplier * sum
         
         print("Result: \(result)")
+        
+        return result
+    }
+    
+    /// DelVecchio 3e, Eq. 9.91 and 9.94
+    func MutualInductanceTo(otherSection:Section) -> Double
+    {
+        guard let selfCoil = self.parent, let otherCoil = otherSection.parent else
+        {
+            ALog("Parent coil has not been set for one of the sections!")
+            return -Double.greatestFiniteMagnitude
+        }
+        
+        let coils:[Coil] = [selfCoil, otherCoil].sorted(by: {$0.innerRadius <= $1.innerRadius})
+        let isSameRadialPosition = selfCoil.innerRadius == otherCoil.innerRadius
+        let sections:[Section] = [self, otherSection].sorted(by: {$0.parent!.innerRadius <= $1.parent!.innerRadius})
+        
+        let N1 = sections[0].N
+        let N2 = sections[1].N
+        let I1 = coils[0].I
+        let I2 = coils[1].I
+        let J1 = sections[0].J(I: I1, radialBuild: coils[0].radialBuild)
+        let J2 = sections[1].J(I: I2, radialBuild: coils[1].radialBuild)
+        
+        let L = selfCoil.core.useWindowHt
+        let r1 = coils[0].innerRadius
+        let r2 = coils[0].outerRadius
+        let r3 = coils[1].innerRadius
+        let r4 = coils[1].outerRadius
+        
+        var result = isSameRadialPosition ? π * µ0 * N1 * N2 / (6 * L) * ((r1 + r2) * (r1 + r2) + 2 * r1 * r1) : π * µ0 * N1 * N2 / (3 * L) * (r1 * r1 + r1 * r2 + r2 * r2)
+        
+        var sum = 0.0
+        for i in 0..<convergenceIterations
+        {
+            let n = i + 1
+            
+            let m = Double(n) * π / L
+            
+            let J1n = sections[0].Jn(n: n, J: J1, L: L)
+            let J2n = sections[1].Jn(n: n, J: J2, L: L)
+            
+            // I was wondering why DelVecchio 3e, Eq. 9.98 was miultiplying the second term by N^2/N^2 and I think that the reason is to stabilize the numbers in the sum.
+            let J_M_NI_exp = log(fabs(J1n)) + log(fabs(J2n)) + log(m) * -4 - log(N1 * I1 * N2 * I2)
+            // We need to set the minus sign if only one of the Jn values is negative (and Swift doesn't have an XOR, so...)
+            let JJ_value = (J1n < 0) != (J2n < 0) ? -1.0 : 1.0
+            let J_M_NI_scaled = Coil.ScaledReturnType(terms: [Coil.ScaledReturnType.Term(scale: J_M_NI_exp, scaledValue: JJ_value)])
+            
+            if isSameRadialPosition
+            {
+                let firstProduct = J_M_NI_scaled * (coils[0].En[i] * coils[0].I1n[i])
+                let secondProduct = J_M_NI_scaled * (coils[0].Fn[i] * coils[0].Cn[i])
+                let thirdProduct = (π / 2) * (J_M_NI_scaled * coils[0].L1n[i])
+                
+                let scaledSum = firstProduct + secondProduct - thirdProduct
+                let checkSum1 = scaledSum.totalTrueValue
+                
+                sum += checkSum1
+            }
+            else
+            {
+                let firstProduct = J_M_NI_scaled * coils[1].Cn[i] * coils[0].I1n[i]
+                let secondProduct = J_M_NI_scaled * coils[1].Dn[i] * coils[0].Cn[i]
+                
+                let scaledSum = firstProduct + secondProduct
+                let checkSum1 = scaledSum.totalTrueValue
+                
+                sum += checkSum1
+            }
+        }
+        
+        let multiplier = π * µ0 * L * N1 * N2
+        
+        result += multiplier * sum
         
         return result
     }
