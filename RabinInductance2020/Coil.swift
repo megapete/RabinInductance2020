@@ -197,17 +197,17 @@ class Coil:Codable, Equatable {
                 let xc = m * self.core.radius
                 
                 var x1 = xc
-                var x2 = self.innerRadius
+                var x2 = m * self.innerRadius
             
                 if index == 1
                 {
-                    x1 = self.innerRadius
-                    x2 = self.outerRadius
+                    x1 = m * self.innerRadius
+                    x2 = m * self.outerRadius
                 }
                 else if index == 2
                 {
-                    x1 = self.outerRadius
-                    x2 = x1 + 0.2 // arbitrary distance to tank
+                    x1 = m * self.outerRadius
+                    x2 = m * (self.outerRadius + 0.2) // arbitrary distance to tank
                 }
                 
                 let newCn = Coil.IntegralOf_tK1_t_dt(from: x1, to: x2)
@@ -227,6 +227,12 @@ class Coil:Codable, Equatable {
                 
                 let newEn = Coil.IntegralOf_tK1_t_dt(from: 0, to: x2)
                 self.En[index].append(newEn)
+                
+                let newI1n = Coil.IntegralOf_tI1_t_dt(from: x1, to: x2)
+                self.Integral_I1n[index].append(newI1n)
+                
+                let newL1n = Coil.IntegralOf_tL1_t_dt(from: x1, to: x2)
+                self.Integral_L1n[index].append(newL1n)
             }
         }
     }

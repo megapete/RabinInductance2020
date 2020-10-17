@@ -107,13 +107,13 @@ class Section:Codable {
             
         }
         
-        print("Sum: \(sum)")
+        // print("Sum: \(sum)")
         
         let multiplier = π * µ0 * L * N * N
         
         result += multiplier * sum
         
-        print("Result: \(result)")
+        // print("Result: \(result)")
         
         return result
     }
