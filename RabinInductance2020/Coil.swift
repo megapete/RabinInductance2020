@@ -20,6 +20,12 @@ class Coil:Codable, Equatable {
         return lhs.coilID == rhs.coilID
     }
     
+    enum Region {
+        case I
+        case II
+        case III
+    }
+    
     let coilID:Int
     let name:String
     
@@ -159,14 +165,15 @@ class Coil:Codable, Equatable {
         }
     }
     
-    var Cn:[ScaledReturnType] = []
-    var Dn:[ScaledReturnType] = []
-    var Fn:[ScaledReturnType] = []
-    var En:[ScaledReturnType] = []
+    var Cn:[[ScaledReturnType]] = Array(repeating: [], count: 3)
+    var Dn:[[ScaledReturnType]] = Array(repeating: [], count: 3)
+    var En:[[ScaledReturnType]] = Array(repeating: [], count: 3)
+    var Fn:[[ScaledReturnType]] = Array(repeating: [], count: 3)
+    var Gn:[[ScaledReturnType]] = Array(repeating: [], count: 3)
     
     // Integrals whose values we'll need
-    var I1n:[ScaledReturnType] = []
-    var L1n:[ScaledReturnType] = []
+    var Integral_I1n:[[ScaledReturnType]] = Array(repeating: [], count: 3)
+    var Integral_L1n:[[ScaledReturnType]] = Array(repeating: [], count: 3)
     
     var sections:[Section]
     
@@ -182,49 +189,46 @@ class Coil:Codable, Equatable {
         self.sections = sections
         self.core = core
         
-        for n in 1...convergenceIterations
+        for index in 0..<3
         {
-            let m = Double(n) * π / core.useWindowHt
-            let x1 = m * innerRadius
-            let x2 = m * outerRadius
-            let xc = m * core.radius
-            
-            let newCn = Coil.IntegralOf_tK1_t_dt(from: x1, to: x2)
-            
-            let i0k0_scaled = gsl_sf_bessel_I0_scaled(xc) / gsl_sf_bessel_K0_scaled(xc)
-            let i0k0 = ScaledReturnType(terms: [ScaledReturnType.Term(scale: 2 * xc, scaledValue: i0k0_scaled)])
-            
-            let newDn = i0k0 * newCn
-            
-            let newFn = newDn - Coil.IntegralOf_tI1_t_dt(from: 0, to: x1)
-            
-            let newEn = Coil.IntegralOf_tK1_t_dt(from: 0, to: x2)
-            
-            self.Cn.append(newCn)
-            self.Dn.append(newDn)
-            self.Fn.append(newFn)
-            self.En.append(newEn)
-            
-            let newI1 = Coil.IntegralOf_tI1_t_dt(from: x1, to: x2)
-            self.I1n.append(newI1)
-            let newL1 = Coil.IntegralOf_tL1_t_dt(from: x1, to: x2)
-            self.L1n.append(newL1)
-            
-            /*
-            if n % 50 == 0
+            for n in 1...convergenceIterations
             {
-                print("Cn: \(newCn)")
-                print("Dn: \(newDn)")
-                print("Fn: \(newFn)")
-                print("En: \(newEn)")
-                print("I1n: \(newI1)")
-                print("L1n: \(newL1)")
+                let m = Double(n) * π / core.useWindowHt
+                let xc = m * self.core.radius
                 
+                var x1 = xc
+                var x2 = self.innerRadius
+            
+                if index == 1
+                {
+                    x1 = self.innerRadius
+                    x2 = self.outerRadius
+                }
+                else if index == 2
+                {
+                    x1 = self.outerRadius
+                    x2 = x1 + 0.2 // arbitrary distance to tank
+                }
+                
+                let newCn = Coil.IntegralOf_tK1_t_dt(from: x1, to: x2)
+                self.Cn[index].append(newCn)
+                
+                let i0k0_scaled = gsl_sf_bessel_I0_scaled(xc) / gsl_sf_bessel_K0_scaled(xc)
+                let i0k0 = ScaledReturnType(terms: [ScaledReturnType.Term(scale: 2 * xc, scaledValue: i0k0_scaled)])
+                
+                let newDn = i0k0 * newCn
+                self.Dn[index].append(newDn)
+                
+                let newFn = newDn - Coil.IntegralOf_tI1_t_dt(from: 0, to: x1)
+                self.Fn[index].append(newFn)
+                
+                let newGn = newDn + Coil.IntegralOf_tI1_t_dt(from: x1, to: x2)
+                self.Gn[index].append(newGn)
+                
+                let newEn = Coil.IntegralOf_tK1_t_dt(from: 0, to: x2)
+                self.En[index].append(newEn)
             }
-            */
         }
-        
-        
     }
     
     /// DelVecchio 3e, Eq. 9.61(a)
@@ -267,6 +271,17 @@ class Coil:Codable, Equatable {
         return ScaledReturnType(terms: terms)
     }
     
+    /// DelVecchio 3e, Eq. 9.58(a)
+    static func L0(x:Double) -> Double
+    {
+        return gsl_sf_bessel_I0(x) - self.M0(x: x)
+    }
+    
+    /// DelVecchio 3e, Eq. 9.58(b)
+    static func L1(x:Double) -> Double
+    {
+        return gsl_sf_bessel_I1(x) - self.M1(x: x)
+    }
     
     /// DelVecchio 3e, Eq. 9.59(a)
     static func M0(x:Double) -> Double
