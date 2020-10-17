@@ -107,7 +107,7 @@ class Section:Codable {
             
         }
         
-        print("Sum: \(sum)")
+        // print("Sum: \(sum)")
         
         let multiplier = π * µ0 * L * N * N
         

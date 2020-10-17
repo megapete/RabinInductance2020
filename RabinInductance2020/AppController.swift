@@ -28,41 +28,16 @@ class AppController: NSObject {
         print("Mutual Inductance: \(fullInnerSection.MutualInductanceTo(otherSection: fullOuterSection)) H")
         print("Mutual Inductance (check): \(fullOuterSection.MutualInductanceTo(otherSection: fullInnerSection)) H")
         
-        let leakreact = fullInnerSection.SelfInductance() + fullOuterSection.SelfInductance() - 2 * fullInnerSection.MutualInductanceTo(otherSection: fullOuterSection)
-        print("Leakage reactance: \(leakreact * 2 * π * 60) ohms")
+        let leakageInductance = fullInnerSection.SelfInductance() + fullOuterSection.SelfInductance() - 2 * fullInnerSection.MutualInductanceTo(otherSection: fullOuterSection)
+        print("leakage inductance (LV side): \(leakageInductance)")
+        print("Leakage reactance: \(leakageInductance * 2 * π * 60) ohms")
         
+        let phase = Phase(core: core, coils: [innerCoil, outerCoil])
         
-        /*
-        let n = 100
-        let m = Double(n) * π / core.useWindowHt
-        let x1 = m * innerCoil.innerRadius
-        let x2 = m * innerCoil.outerRadius
-        let xc = m * core.radius
+        let energy = phase.Energy()
         
-        
-        
-        let simpleCnFrom = self.IntegralOf_tK1_t_dt_from_0(to: x1)
-        let simpleCnTo = self.IntegralOf_tK1_t_dt_from_0(to: x2)
-        let simpleCn = simpleCnTo - simpleCnFrom
-        let simpleDn = gsl_sf_bessel_I0(xc) / gsl_sf_bessel_K0(xc) * simpleCn
-        let i0k0_simple = gsl_sf_bessel_I0(xc) / gsl_sf_bessel_K0(xc)
-        
-        let scaledCn_scaled = Coil.IntegralOf_tK1_t_dt(from: x1, to: x2)
-        let scaledCn = scaledCn_scaled.totalTrueValue
-        let i0k0 = gsl_sf_bessel_I0_scaled(xc) / gsl_sf_bessel_K0_scaled(xc)
-        let i0k0_scaled = Coil.ScaledReturnType(terms: [Coil.ScaledReturnType.Term(scale: 2 * xc, scaledValue: i0k0)])
-        let i0k0_test = i0k0_scaled.totalTrueValue
-        let scaledDn_scaled = i0k0_scaled * scaledCn_scaled
-        let scaledDn = scaledDn_scaled.totalTrueValue
-        
-        let simpleFn = simpleDn - self.IntegralOf_tI1_t_dt_from_0(to: x1)
-        let scaledFn = scaledDn - Coil.IntegralOf_tI1_t_dt(from: 0, to: x1).totalTrueValue
-        let scaledFn_scaled = (scaledDn_scaled - Coil.IntegralOf_tI1_t_dt(from: 0, to: x1)).totalTrueValue
-        let coilFn = innerCoil.Fn[n - 1].totalTrueValue
-        print("SimpleCn: \(simpleCn); ScaledCn: \(scaledCn); Diff: \(simpleCn - scaledCn); %Diff: \((simpleCn - scaledCn) / simpleCn)")
-        print("SimpleDn: \(simpleDn); ScaledDn: \(scaledDn); Diff: \(simpleDn - scaledDn); %Diff: \((simpleDn - scaledDn) / simpleDn)")
-        print("SimpleFn: \(simpleFn); ScaledFn: \(scaledFn); Diff: \(simpleFn - scaledFn); %Diff: \((simpleFn - scaledFn) / simpleFn)")
-        */
+        print("Energy: \(energy)")
+        print("Leakage inductance from energy (LV side): \(2.0 * energy / (170.0 * 170.0))")
     }
     
     @IBAction func handleTest2(_ sender: Any) {
@@ -85,9 +60,40 @@ class AppController: NSObject {
         print("Mutual Inductance (check): \(fullOuterSection.MutualInductanceTo(otherSection: fullInnerSection)) H")
         
         let leakageInductance = fullInnerSection.SelfInductance() + pow((fullInnerSection.N / fullOuterSection.N), 2.0) * fullOuterSection.SelfInductance() - 2 * (fullInnerSection.N / fullOuterSection.N) * fullInnerSection.MutualInductanceTo(otherSection: fullOuterSection)
+        print("leakage inductance (LV side): \(leakageInductance)")
         print("Leakage reactance: \(leakageInductance * 2 * π * 60) ohms")
+        
+        let phase = Phase(core: core, coils: [innerCoil, outerCoil])
+        
+        let energy = phase.Energy()
+        
+        print("Energy: \(energy)")
+        print("Leakage inductance from energy (LV side): \(2.0 * energy / (801.3 * 801.3))")
+        
+        print("Reactance (pu): \(phase.LeakageReactancePU(baseVA: 10.0E6 / 3.0, baseI: 801.3))")
     }
     
+    @IBAction func handleTest3(_ sender: Any) {
+        
+        let core = Core(realWindowHt: 1.26, radius: 0.483 / 2)
+        
+        // we're tripling the window height, so we'll just add one window height to the z-dims of the coils
+        let fullInnerSection = Section(sectionID: Section.nextSerialNumber, zMin: 1.26 + 3.5 * meterPerInch, zMax: 1.26 + (3.5 + 41.025) * meterPerInch, N: 64, inNode: 0, outNode: 0)
+        let fullOuterSection = Section(sectionID: Section.nextSerialNumber, zMin: 1.26 + 3.5 * meterPerInch, zMax: 1.26 + (3.5 + 41.025) * meterPerInch, N: 613, inNode: 0, outNode: 0)
+        
+        let innerCoil = Coil(coilID: 1, name: "Inner", currentDirection: -1, innerRadius: 20.5 * meterPerInch / 2, outerRadius: 23.723 * meterPerInch / 2, I: 801.3, sections: [], core: core)
+        let outerCoil = Coil(coilID: 2, name: "Outer", currentDirection: 1, innerRadius: 26.723 * meterPerInch / 2, outerRadius: 30.274 * meterPerInch / 2, I: 83.67, sections: [], core: core)
+        
+        fullInnerSection.parent = innerCoil
+        fullOuterSection.parent = outerCoil
+        
+        innerCoil.sections = fullInnerSection.SplitSection(numSections: 10)
+        outerCoil.sections = fullOuterSection.SplitSection(numSections: 60)
+        
+        let phase = Phase(core: core, coils: [innerCoil, outerCoil])
+        
+        print("Reactance (pu): \(phase.LeakageReactancePU(baseVA: 10.0E6 / 3.0, baseI: 83.67))")
+    }
     
     // MARK: Simple (unscaled) Versions of Del Vecchio functions (for testing)
     func IntegralOf_tI1_t_dt_from_0(to x:Double) -> Double
