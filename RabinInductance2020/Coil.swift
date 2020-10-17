@@ -28,6 +28,7 @@ class Coil:Codable, Equatable {
     
     let coilID:Int
     let name:String
+    var currentDirection:Int
     
     let innerRadius:Double
     let outerRadius:Double
@@ -179,10 +180,11 @@ class Coil:Codable, Equatable {
     
     let core:Core
     
-    init(coilID:Int, name:String, innerRadius:Double, outerRadius:Double, I:Double, sections:[Section] = [], core:Core) {
+    init(coilID:Int, name:String, currentDirection:Int, innerRadius:Double, outerRadius:Double, I:Double, sections:[Section] = [], core:Core) {
         
         self.coilID = coilID
         self.name = name
+        self.currentDirection = currentDirection
         self.innerRadius = innerRadius
         self.outerRadius = outerRadius
         self.I = I

@@ -17,8 +17,8 @@ class AppController: NSObject {
         let fullInnerSection = Section(sectionID: Section.nextSerialNumber, zMin: 0.68 + 3 * meterPerInch, zMax: 0.68 + 23.276 * meterPerInch, N: 190, inNode: 0, outNode: 0)
         let fullOuterSection = Section(sectionID: Section.nextSerialNumber, zMin: 0.68 + 3 * meterPerInch, zMax: 0.68 + 23.276 * meterPerInch, N: 190, inNode: 0, outNode: 0)
         
-        let innerCoil = Coil(coilID: 1, name: "Inner", innerRadius: 13.1 * meterPerInch / 2, outerRadius: 16.396 * meterPerInch / 2, I: 170, sections: [fullInnerSection], core: core)
-        let outerCoil = Coil(coilID: 2, name: "Outer", innerRadius: 19.483 * meterPerInch / 2, outerRadius: 22.779 * meterPerInch / 2, I: 170, sections: [fullOuterSection], core: core)
+        let innerCoil = Coil(coilID: 1, name: "Inner", currentDirection: -1, innerRadius: 13.1 * meterPerInch / 2, outerRadius: 16.396 * meterPerInch / 2, I: 170, sections: [fullInnerSection], core: core)
+        let outerCoil = Coil(coilID: 2, name: "Outer", currentDirection: 1, innerRadius: 19.483 * meterPerInch / 2, outerRadius: 22.779 * meterPerInch / 2, I: 170, sections: [fullOuterSection], core: core)
         
         fullInnerSection.parent = innerCoil
         fullOuterSection.parent = outerCoil
@@ -73,8 +73,8 @@ class AppController: NSObject {
         let fullInnerSection = Section(sectionID: Section.nextSerialNumber, zMin: 1.26 + 3.5 * meterPerInch, zMax: 1.26 + (3.5 + 41.025) * meterPerInch, N: 64, inNode: 0, outNode: 0)
         let fullOuterSection = Section(sectionID: Section.nextSerialNumber, zMin: 1.26 + 3.5 * meterPerInch, zMax: 1.26 + (3.5 + 41.025) * meterPerInch, N: 613, inNode: 0, outNode: 0)
         
-        let innerCoil = Coil(coilID: 1, name: "Inner", innerRadius: 20.5 * meterPerInch / 2, outerRadius: 23.723 * meterPerInch / 2, I: 801.3, sections: [fullInnerSection], core: core)
-        let outerCoil = Coil(coilID: 2, name: "Outer", innerRadius: 26.723 * meterPerInch / 2, outerRadius: 30.274 * meterPerInch / 2, I: 83.67, sections: [fullOuterSection], core: core)
+        let innerCoil = Coil(coilID: 1, name: "Inner", currentDirection: -1, innerRadius: 20.5 * meterPerInch / 2, outerRadius: 23.723 * meterPerInch / 2, I: 801.3, sections: [fullInnerSection], core: core)
+        let outerCoil = Coil(coilID: 2, name: "Outer", currentDirection: 1, innerRadius: 26.723 * meterPerInch / 2, outerRadius: 30.274 * meterPerInch / 2, I: 83.67, sections: [fullOuterSection], core: core)
         
         fullInnerSection.parent = innerCoil
         fullOuterSection.parent = outerCoil
