@@ -12,7 +12,7 @@
             </connections>
         </customObject>
         <customObject id="-1" userLabel="First Responder" customClass="FirstResponder"/>
-        <customObject id="-3" userLabel="Application"/>
+        <customObject id="-3" userLabel="Application" customClass="NSObject"/>
         <customObject id="Voe-Tx-rLC" customClass="AppDelegate" customModule="RabinInductance2020" customModuleProvider="target">
             <connections>
                 <outlet property="window" destination="QvC-M9-y7g" id="gIp-Ho-8D9"/>
@@ -650,6 +650,12 @@
                                 <modifierMask key="keyEquivalentModifierMask"/>
                                 <connections>
                                     <action selector="handleTest1:" target="II9-PS-IqR" id="mVM-VL-yr2"/>
+                                </connections>
+                            </menuItem>
+                            <menuItem title="Test #2" id="yHP-Qu-E1G">
+                                <modifierMask key="keyEquivalentModifierMask"/>
+                                <connections>
+                                    <action selector="handleTest2:" target="II9-PS-IqR" id="K8L-xT-mq0"/>
                                 </connections>
                             </menuItem>
                         </items>

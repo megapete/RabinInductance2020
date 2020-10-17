@@ -65,6 +65,30 @@ class AppController: NSObject {
         */
     }
     
+    @IBAction func handleTest2(_ sender: Any) {
+        
+        let core = Core(realWindowHt: 1.26, radius: 0.483 / 2)
+        
+        // we're tripling the window height, so we'll just add one window height to the z-dims of the coils
+        let fullInnerSection = Section(sectionID: Section.nextSerialNumber, zMin: 1.26 + 3.5 * meterPerInch, zMax: 1.26 + (3.5 + 41.025) * meterPerInch, N: 64, inNode: 0, outNode: 0)
+        let fullOuterSection = Section(sectionID: Section.nextSerialNumber, zMin: 1.26 + 3.5 * meterPerInch, zMax: 1.26 + (3.5 + 41.025) * meterPerInch, N: 613, inNode: 0, outNode: 0)
+        
+        let innerCoil = Coil(coilID: 1, name: "Inner", innerRadius: 20.5 * meterPerInch / 2, outerRadius: 23.723 * meterPerInch / 2, I: 801.3, sections: [fullInnerSection], core: core)
+        let outerCoil = Coil(coilID: 2, name: "Outer", innerRadius: 26.723 * meterPerInch / 2, outerRadius: 30.274 * meterPerInch / 2, I: 83.67, sections: [fullOuterSection], core: core)
+        
+        fullInnerSection.parent = innerCoil
+        fullOuterSection.parent = outerCoil
+        
+        print("Self Inductance (inner): \(fullInnerSection.SelfInductance()) H")
+        print("Self Inductance (outer): \(fullOuterSection.SelfInductance()) H")
+        print("Mutual Inductance: \(fullInnerSection.MutualInductanceTo(otherSection: fullOuterSection)) H")
+        print("Mutual Inductance (check): \(fullOuterSection.MutualInductanceTo(otherSection: fullInnerSection)) H")
+        
+        let leakageInductance = fullInnerSection.SelfInductance() + pow((fullInnerSection.N / fullOuterSection.N), 2.0) * fullOuterSection.SelfInductance() - 2 * (fullInnerSection.N / fullOuterSection.N) * fullInnerSection.MutualInductanceTo(otherSection: fullOuterSection)
+        print("Leakage reactance: \(leakageInductance * 2 * π * 60) ohms")
+    }
+    
+    
     // MARK: Simple (unscaled) Versions of Del Vecchio functions (for testing)
     func IntegralOf_tI1_t_dt_from_0(to x:Double) -> Double
     {
