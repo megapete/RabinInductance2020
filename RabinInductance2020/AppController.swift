@@ -7,15 +7,6 @@
 
 import Cocoa
 
-extension PCH_Matrix {
-    
-    /// A routine to check whether a matrix is really positive-definite or not (inductance matrix is supposed to always be). The idea comes from this discussion: https://icl.cs.utk.edu/lapack-forum/viewtopic.php?f=2&t=3534. The idea is to try and perform a Cholesky factorization of the matrix (LAPACK routine DPOTRF). If the factorization is successfull, the matrix is positive definite.
-    func TestPositiveDefinite() -> Bool
-    {
-        return true
-    }
-}
-
 class AppController: NSObject {
 
     @IBAction func handleTest1(_ sender: Any) {
