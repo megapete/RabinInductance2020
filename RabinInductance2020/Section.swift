@@ -82,16 +82,21 @@ class Section:Codable {
         
         var result = π * µ0 * N * N / (6 * L) * ((r2 + r1) * (r2 + r1) + 2 * r1 * r1)
         
+        let sumQueue = DispatchQueue(label: "com.huberistech.rabin_inductance_2020.sum")
+        
         var sum = 0.0
-        for i in 0..<convergenceIterations
+        // for i in 0..<convergenceIterations
+        DispatchQueue.concurrentPerform(iterations: convergenceIterations)
         {
+            (i:Int) -> Void in // this is the way to specify one of those "dangling" closures
+        
             let n = i + 1
             
             let m = Double(n) * π / L
             
             let Jn = self.Jn(n: n, J: J, L: L)
             
-            // I was wondering why DelVecchio 3e, Eq. 9.98 was miultiplying the second term by N^2/N^2 and I think that the reason is to stabilize the numbers in the sum.
+            // I was wondering why DelVecchio 3e, Eq. 9.98 was multiplying the second term by N^2/N^2 and I think that the reason is to stabilize the numbers in the sum.
             let J_M_NI_exp = log(fabs(Jn)) * 2 + log(m) * -4 + log(N * I) * -2
             let J_M_NI_scaled = Coil.ScaledReturnType(terms: [Coil.ScaledReturnType.Term(scale: J_M_NI_exp, scaledValue: 1.0)])
             
@@ -103,8 +108,9 @@ class Section:Codable {
             let checkSum1 = scaledSum.totalTrueValue
             // let checkSum2 = firstProduct.totalTrueValue + secondProduct.totalTrueValue - thirdProduct.totalTrueValue
             
-            sum += checkSum1
-            
+            sumQueue.sync {
+                sum += checkSum1
+            }
         }
         
         // print("Sum: \(sum)")
@@ -146,9 +152,14 @@ class Section:Codable {
         
         var result = isSameRadialPosition ? π * µ0 * N1 * N2 / (6 * L) * ((r1 + r2) * (r1 + r2) + 2 * r1 * r1) : π * µ0 * N1 * N2 / (3 * L) * (r1 * r1 + r1 * r2 + r2 * r2)
         
+        let sumQueue = DispatchQueue(label: "com.huberistech.rabin_inductance_2020.sum")
+        
         var sum = 0.0
-        for i in 0..<convergenceIterations
+        // for i in 0..<convergenceIterations
+        DispatchQueue.concurrentPerform(iterations: convergenceIterations)
         {
+            (i:Int) -> Void in // this is the way to specify one of those "dangling" closures
+            
             let n = i + 1
             
             let m = Double(n) * π / L
@@ -171,7 +182,9 @@ class Section:Codable {
                 let scaledSum = firstProduct + secondProduct - thirdProduct
                 let checkSum1 = scaledSum.totalTrueValue
                 
-                sum += checkSum1
+                sumQueue.sync {
+                    sum += checkSum1
+                }
             }
             else
             {
@@ -181,7 +194,9 @@ class Section:Codable {
                 let scaledSum = firstProduct + secondProduct
                 let checkSum1 = scaledSum.totalTrueValue
                 
-                sum += checkSum1
+                sumQueue.sync {
+                    sum += checkSum1
+                }
             }
         }
         
