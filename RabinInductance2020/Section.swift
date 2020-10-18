@@ -167,7 +167,7 @@ class Section:Codable {
             let J1n = sections[0].Jn(n: n, J: J1, L: L)
             let J2n = sections[1].Jn(n: n, J: J2, L: L)
             
-            // I was wondering why DelVecchio 3e, Eq. 9.98 was miultiplying the second term by N^2/N^2 and I think that the reason is to stabilize the numbers in the sum.
+            // I was wondering why DelVecchio 3e, Eq. 9.98 was multiplying the second term by N^2/N^2 and I think that the reason is to stabilize the numbers in the sum.
             let J_M_NI_exp = log(fabs(J1n)) + log(fabs(J2n)) + log(m) * -4 - log(N1 * I1 * N2 * I2)
             // We need to set the minus sign if only one of the Jn values is negative (and Swift doesn't have an XOR, so...)
             let JJ_value = (J1n < 0) != (J2n < 0) ? -1.0 : 1.0

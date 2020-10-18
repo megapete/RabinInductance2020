@@ -87,10 +87,14 @@ class AppController: NSObject {
         fullInnerSection.parent = innerCoil
         fullOuterSection.parent = outerCoil
         
-        innerCoil.sections = fullInnerSection.SplitSection(numSections: 10)
-        outerCoil.sections = fullOuterSection.SplitSection(numSections: 60)
+        innerCoil.sections = fullInnerSection.SplitSection(numSections: 4)
+        outerCoil.sections = fullOuterSection.SplitSection(numSections: 4)
         
         let phase = Phase(core: core, coils: [innerCoil, outerCoil])
+        
+        let testMatrix = 1000.0 * phase.InductanceMatrix()
+        
+        let matrixDisplay = MatrixDisplay(windowTitle: "Matrix", matrix: testMatrix)
         
         print("Reactance (pu): \(phase.LeakageReactancePU(baseVA: 10.0E6 / 3.0, baseI: 83.67))")
     }
