@@ -162,6 +162,7 @@ class Matrix:CustomStringConvertible {
 class MatrixDisplay:NSObject, NSWindowDelegate, NSTableViewDataSource, NSTableViewDelegate {
     
     @IBOutlet var window: NSWindow!
+    @IBOutlet weak var gridView: NSGridView!
     
     var matrix:Matrix
     var windowTitle:String
@@ -189,9 +190,19 @@ class MatrixDisplay:NSObject, NSWindowDelegate, NSTableViewDataSource, NSTableVi
     override func awakeFromNib() {
         
         // This is where everything needs to be set up
+        // self.gridView.removeRow(at: 0)
         
+        var rowViews:[NSTextField] = []
+        for i in 0..<self.matrix.rows
+        {
+            rowViews.append(NSTextField(labelWithString: "\(i + 1)"))
+        }
+        
+        self.gridView.addRow(with: rowViews)
         
         self.window.title = self.windowTitle
         self.window.makeKeyAndOrderFront(self)
     }
+    
+    
 }
