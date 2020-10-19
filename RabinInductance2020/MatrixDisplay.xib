@@ -8,7 +8,7 @@
     <objects>
         <customObject id="-2" userLabel="File's Owner" customClass="MatrixDisplay" customModule="RabinInductance2020" customModuleProvider="target">
             <connections>
-                <outlet property="gridView" destination="O4J-bm-Jxp" id="I3N-SC-vTs"/>
+                <outlet property="contentView" destination="2RH-l1-5CA" id="wAs-fh-4hd"/>
                 <outlet property="window" destination="QvC-M9-y7g" id="UaI-aN-gAO"/>
             </connections>
         </customObject>
@@ -18,39 +18,30 @@
             <windowStyleMask key="styleMask" titled="YES" closable="YES" miniaturizable="YES" resizable="YES"/>
             <windowPositionMask key="initialPositionMask" leftStrut="YES" rightStrut="YES" topStrut="YES" bottomStrut="YES"/>
             <rect key="contentRect" x="196" y="240" width="762" height="524"/>
-            <rect key="screenRect" x="0.0" y="0.0" width="2560" height="1417"/>
+            <rect key="screenRect" x="0.0" y="0.0" width="1680" height="1027"/>
             <view key="contentView" wantsLayer="YES" id="EiT-Mj-1SZ">
                 <rect key="frame" x="0.0" y="0.0" width="762" height="524"/>
                 <autoresizingMask key="autoresizingMask"/>
                 <subviews>
-                    <scrollView fixedFrame="YES" horizontalLineScroll="10" horizontalPageScroll="10" verticalLineScroll="10" verticalPageScroll="10" usesPredominantAxisScrolling="NO" translatesAutoresizingMaskIntoConstraints="NO" id="G34-gw-EEn">
+                    <scrollView fixedFrame="YES" horizontalLineScroll="10" horizontalPageScroll="10" verticalLineScroll="10" verticalPageScroll="10" usesPredominantAxisScrolling="NO" translatesAutoresizingMaskIntoConstraints="NO" id="IR5-kl-g3G">
                         <rect key="frame" x="-1" y="-1" width="764" height="526"/>
-                        <autoresizingMask key="autoresizingMask"/>
-                        <clipView key="contentView" id="hD4-CB-ubE">
-                            <rect key="frame" x="1" y="1" width="747" height="509"/>
+                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                        <clipView key="contentView" id="mgL-x3-8Ob">
+                            <rect key="frame" x="1" y="1" width="762" height="524"/>
                             <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                             <subviews>
-                                <gridView autoresizesSubviews="NO" fixedFrame="YES" xPlacement="leading" yPlacement="bottom" rowAlignment="none" rowSpacing="1" columnSpacing="1" translatesAutoresizingMaskIntoConstraints="NO" id="O4J-bm-Jxp">
-                                    <rect key="frame" x="0.0" y="0.0" width="100" height="30"/>
+                                <customView fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="2RH-l1-5CA">
+                                    <rect key="frame" x="0.0" y="0.0" width="762" height="524"/>
                                     <autoresizingMask key="autoresizingMask"/>
-                                    <rows>
-                                        <gridRow id="GZB-5y-3om"/>
-                                    </rows>
-                                    <columns>
-                                        <gridColumn id="fwC-T1-PPS"/>
-                                    </columns>
-                                    <gridCells>
-                                        <gridCell row="GZB-5y-3om" column="fwC-T1-PPS" id="sxK-db-04L"/>
-                                    </gridCells>
-                                </gridView>
+                                </customView>
                             </subviews>
                         </clipView>
-                        <scroller key="horizontalScroller" wantsLayer="YES" verticalHuggingPriority="750" horizontal="YES" id="V8b-Wn-S37">
-                            <rect key="frame" x="1" y="510" width="747" height="15"/>
+                        <scroller key="horizontalScroller" wantsLayer="YES" verticalHuggingPriority="750" horizontal="YES" id="F8f-ef-ISp">
+                            <rect key="frame" x="1" y="509" width="762" height="16"/>
                             <autoresizingMask key="autoresizingMask"/>
                         </scroller>
-                        <scroller key="verticalScroller" wantsLayer="YES" verticalHuggingPriority="750" doubleValue="1" horizontal="NO" id="qC3-63-c8g">
-                            <rect key="frame" x="748" y="1" width="15" height="509"/>
+                        <scroller key="verticalScroller" wantsLayer="YES" verticalHuggingPriority="750" doubleValue="1" horizontal="NO" id="AM7-9c-MJY">
+                            <rect key="frame" x="747" y="1" width="16" height="524"/>
                             <autoresizingMask key="autoresizingMask"/>
                         </scroller>
                     </scrollView>
