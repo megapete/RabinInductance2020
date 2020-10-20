@@ -14,8 +14,8 @@ class AppController: NSObject {
         let core = Core(realWindowHt: 0.680, radius: 0.295 / 2)
         
         // we're tripling the window height, so we'll just add one window height to the z-dims of the coils
-        let fullInnerSection = Section(sectionID: Section.nextSerialNumber, zMin: 0.68 + 3 * meterPerInch, zMax: 0.68 + 23.276 * meterPerInch, N: 190, inNode: 0, outNode: 0)
-        let fullOuterSection = Section(sectionID: Section.nextSerialNumber, zMin: 0.68 + 3 * meterPerInch, zMax: 0.68 + 23.276 * meterPerInch, N: 190, inNode: 0, outNode: 0)
+        let fullInnerSection = Section(sectionID: Section.nextSerialNumber, zMin: 0 + 3 * meterPerInch, zMax: 0.68 + 23.276 * meterPerInch, N: 190, inNode: 0, outNode: 0)
+        let fullOuterSection = Section(sectionID: Section.nextSerialNumber, zMin: 0 + 3 * meterPerInch, zMax: 0.68 + 23.276 * meterPerInch, N: 190, inNode: 0, outNode: 0)
         
         let innerCoil = Coil(coilID: 1, name: "Inner", currentDirection: -1, innerRadius: 13.1 * meterPerInch / 2, outerRadius: 16.396 * meterPerInch / 2, I: 170, sections: [fullInnerSection], core: core)
         let outerCoil = Coil(coilID: 2, name: "Outer", currentDirection: 1, innerRadius: 19.483 * meterPerInch / 2, outerRadius: 22.779 * meterPerInch / 2, I: 170, sections: [fullOuterSection], core: core)
@@ -45,8 +45,8 @@ class AppController: NSObject {
         let core = Core(realWindowHt: 1.26, radius: 0.483 / 2)
         
         // we're tripling the window height, so we'll just add one window height to the z-dims of the coils
-        let fullInnerSection = Section(sectionID: Section.nextSerialNumber, zMin: 1.26 + 3.5 * meterPerInch, zMax: 1.26 + (3.5 + 41.025) * meterPerInch, N: 64, inNode: 0, outNode: 0)
-        let fullOuterSection = Section(sectionID: Section.nextSerialNumber, zMin: 1.26 + 3.5 * meterPerInch, zMax: 1.26 + (3.5 + 41.025) * meterPerInch, N: 613, inNode: 0, outNode: 0)
+        let fullInnerSection = Section(sectionID: Section.nextSerialNumber, zMin: 0 + 3.5 * meterPerInch, zMax: 1.26 + (3.5 + 41.025) * meterPerInch, N: 64, inNode: 0, outNode: 0)
+        let fullOuterSection = Section(sectionID: Section.nextSerialNumber, zMin: 0 + 3.5 * meterPerInch, zMax: 1.26 + (3.5 + 41.025) * meterPerInch, N: 613, inNode: 0, outNode: 0)
         
         let innerCoil = Coil(coilID: 1, name: "Inner", currentDirection: -1, innerRadius: 20.5 * meterPerInch / 2, outerRadius: 23.723 * meterPerInch / 2, I: 801.3, sections: [fullInnerSection], core: core)
         let outerCoil = Coil(coilID: 2, name: "Outer", currentDirection: 1, innerRadius: 26.723 * meterPerInch / 2, outerRadius: 30.274 * meterPerInch / 2, I: 83.67, sections: [fullOuterSection], core: core)
@@ -78,8 +78,8 @@ class AppController: NSObject {
         let core = Core(realWindowHt: 1.26, radius: 0.483 / 2)
         
         // we're tripling the window height, so we'll just add one window height to the z-dims of the coils
-        let fullInnerSection = Section(sectionID: Section.nextSerialNumber, zMin: 1.26 + 3.5 * meterPerInch, zMax: 1.26 + (3.5 + 41.025) * meterPerInch, N: 64, inNode: 0, outNode: 0)
-        let fullOuterSection = Section(sectionID: Section.nextSerialNumber, zMin: 1.26 + 3.5 * meterPerInch, zMax: 1.26 + (3.5 + 41.025) * meterPerInch, N: 613, inNode: 0, outNode: 0)
+        let fullInnerSection = Section(sectionID: Section.nextSerialNumber, zMin: 0 + 3.5 * meterPerInch, zMax: 0 + (3.5 + 41.025) * meterPerInch, N: 64, inNode: 0, outNode: 0)
+        let fullOuterSection = Section(sectionID: Section.nextSerialNumber, zMin: 0 + 3.5 * meterPerInch, zMax: 0 + (3.5 + 41.025) * meterPerInch, N: 613, inNode: 0, outNode: 0)
         
         let innerCoil = Coil(coilID: 1, name: "Inner", currentDirection: -1, innerRadius: 20.5 * meterPerInch / 2, outerRadius: 23.723 * meterPerInch / 2, I: 801.3, sections: [], core: core)
         let outerCoil = Coil(coilID: 2, name: "Outer", currentDirection: 1, innerRadius: 26.723 * meterPerInch / 2, outerRadius: 30.274 * meterPerInch / 2, I: 83.67, sections: [], core: core)
@@ -87,12 +87,16 @@ class AppController: NSObject {
         fullInnerSection.parent = innerCoil
         fullOuterSection.parent = outerCoil
         
-        innerCoil.sections = fullInnerSection.SplitSection(numSections: 4)
-        outerCoil.sections = fullOuterSection.SplitSection(numSections: 40)
+        innerCoil.sections = fullInnerSection.SplitSection(numSections: 64)
+        outerCoil.sections = fullOuterSection.SplitSection(numSections: 60)
         
         let phase = Phase(core: core, coils: [innerCoil, outerCoil])
         
         let testMatrix = 1000.0 * phase.InductanceMatrix()
+        
+        let testPosDef = testMatrix.TestPositiveDefinite()
+        
+        print("Matrix is Positive Definite: \(testPosDef)")
         
         let matrixDisplay = MatrixDisplay(windowTitle: "Matrix", matrix: testMatrix)
         

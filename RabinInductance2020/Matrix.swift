@@ -52,8 +52,8 @@ class Matrix:CustomStringConvertible {
     let type:NumberType
     
     /// The actual buffers that hold the matrix
-    private let doubleBuffPtr:UnsafeMutablePointer<__CLPK_doublereal>
-    private let complexBuffPtr:UnsafeMutablePointer<__CLPK_doublecomplex>
+    private var doubleBuffPtr:UnsafeMutablePointer<__CLPK_doublereal>
+    private var complexBuffPtr:UnsafeMutablePointer<__CLPK_doublecomplex>
     
     /// The number of rows in the matrix
     let rows:Int
@@ -149,9 +149,86 @@ class Matrix:CustomStringConvertible {
         return row < self.rows && column < self.columns
     }
     
-    /// A routine to check whether a matrix is really positive-definite or not (inductance matrix is supposed to always be). The idea comes from this discussion: https://icl.cs.utk.edu/lapack-forum/viewtopic.php?f=2&t=3534. The idea is to try and perform a Cholesky factorization of the matrix (LAPACK routine DPOTRF). If the factorization is successfull, the matrix is positive definite.
-    func TestPositiveDefinite() -> Bool
+    /// A  routine to check whether self is a symmetric matrix
+    func TestForSymmetry() -> Bool
     {
+        guard self.rows == self.columns else
+        {
+            DLog("Matrix must be square!")
+            return false
+        }
+        
+        if self.type == .Double
+        {
+            for i in 0..<self.rows
+            {
+                for j in i..<self.columns
+                {
+                    let lhs:Double = self[i, j]
+                    let rhs:Double = self[j, i]
+                    if lhs != rhs
+                    {
+                        return false
+                    }
+                }
+            }
+        }
+        else
+        {
+            for i in 0..<self.rows
+            {
+                for j in i..<self.columns
+                {
+                    let lhs:Complex = self[i, j]
+                    let rhs:Complex = self[j, i]
+                    if lhs != rhs
+                    {
+                        return false
+                    }
+                }
+            }
+        }
+        
+        return true
+    }
+    
+    /// A routine to check whether a matrix is really positive-definite or not (inductance matrix is supposed to always be). The idea comes from this discussion: https://icl.cs.utk.edu/lapack-forum/viewtopic.php?f=2&t=3534. The idea is to try and perform a Cholesky factorization of the matrix (LAPACK routine DPOTRF). If the factorization is successfull, the matrix is positive definite.
+    /// - Parameter overwriteExistingMatrix: The function actually saves the Cholesky factorization by overwriting the existing buffer for this matrix
+    func TestPositiveDefinite(overwriteExistingMatrix:Bool = false) -> Bool
+    {
+        guard self.TestForSymmetry() else
+        {
+            DLog("Matrix must be square and symmetric!")
+            return false
+        }
+        
+        if self.type == .Double
+        {
+            var uplo:Int8 = 85 // 'U'
+            var n = __CLPK_integer(self.rows)
+            var lda = n
+            var info = __CLPK_integer(0)
+            let A = UnsafeMutablePointer<__CLPK_doublereal>.allocate(capacity: Int(rows * columns))
+            A.assign(from: self.doubleBuffPtr, count: Int(rows * columns))
+            
+            dpotrf_(&uplo, &n, A, &lda, &info)
+            
+            if info < 0
+            {
+                DLog("Illegal Argument #\(info)")
+                return false
+            }
+            else if info > 0
+            {
+                DLog("The matrix is not positive definite (leading minor of order \(info)")
+                return false
+            }
+            
+            if overwriteExistingMatrix
+            {
+                self.doubleBuffPtr = A
+            }
+        }
         
         return true
     }
