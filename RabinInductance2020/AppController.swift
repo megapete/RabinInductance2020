@@ -88,7 +88,7 @@ class AppController: NSObject {
         fullOuterSection.parent = outerCoil
         
         innerCoil.sections = fullInnerSection.SplitSection(numSections: 4)
-        outerCoil.sections = fullOuterSection.SplitSection(numSections: 4)
+        outerCoil.sections = fullOuterSection.SplitSection(numSections: 40)
         
         let phase = Phase(core: core, coils: [innerCoil, outerCoil])
         

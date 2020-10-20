@@ -32,7 +32,7 @@
                             <subviews>
                                 <customView fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="2RH-l1-5CA">
                                     <rect key="frame" x="0.0" y="0.0" width="762" height="524"/>
-                                    <autoresizingMask key="autoresizingMask"/>
+                                    <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                 </customView>
                             </subviews>
                         </clipView>

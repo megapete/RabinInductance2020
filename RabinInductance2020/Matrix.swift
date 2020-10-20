@@ -158,8 +158,8 @@ class Matrix:CustomStringConvertible {
     
 }
 
-/// A class for displaying a Matrix in a window that has an NSTableView (like a spreadsheet). Some of the logic in here comes from the PCH_DialogBox class
-class MatrixDisplay:NSObject, NSWindowDelegate, NSTableViewDataSource, NSTableViewDelegate {
+/// A class for displaying a Matrix. After looking into NSTableView, NSGridView, and NSCollectionView, I decided to roll my own.
+class MatrixDisplay:NSObject, NSWindowDelegate {
     
     @IBOutlet var window: NSWindow!
     @IBOutlet weak var contentView: NSView!
@@ -167,7 +167,7 @@ class MatrixDisplay:NSObject, NSWindowDelegate, NSTableViewDataSource, NSTableVi
     var matrix:Matrix
     var windowTitle:String
     
-    init?(windowTitle:String, matrix:Matrix)
+    init?(windowTitle:String = "Matrix", matrix:Matrix)
     {
         self.matrix = matrix
         self.windowTitle = windowTitle
@@ -188,35 +188,99 @@ class MatrixDisplay:NSObject, NSWindowDelegate, NSTableViewDataSource, NSTableVi
     }
     
     override func awakeFromNib() {
-        
-        // This is where everything needs to be set up
-        let dummyField = NSTextField(labelWithString: "9999999999")
-        let fieldRect = dummyField.frame
-        print(fieldRect)
-        
-        var rowViews:[[NSTextField]] = []
-        for i in 0..<self.matrix.rows
-        {
-            var nextRow:[NSTextField] = []
-            for j in 0..<self.matrix.columns
-            {
-                let newField = NSTextField(labelWithString: "9999999999")
-                newField.stringValue = "\(i+1)-\(j+1)"
-                newField.alignment = .center
                 
-                nextRow.append(newField)
-            }
+        let tfWidth:CGFloat = 100.0
+        let colNumWidth:CGFloat = 40.0
+        let tfHeight:CGFloat = 21.0
+        
+        let contentView = self.contentView!
+        
+        let newFrameSize:NSSize = NSSize(width:max(colNumWidth + CGFloat(self.matrix.columns) * tfWidth, contentView.frame.size.width), height: max(CGFloat(1 + self.matrix.rows) * tfHeight, contentView.frame.size.height))
+        // let newBounds:NSSize = NSSize(width:colNumWidth + CGFloat(self.matrix.columns) * tfWidth, height: CGFloat(1 + self.matrix.rows) * tfHeight)
+        
+        self.contentView.frame.size = newFrameSize
+        var nextRowTop = contentView.frame.origin.y + contentView.frame.size.height
+        
+        var nextColLeft:CGFloat = colNumWidth
+        for nextColNum in 0..<self.matrix.columns
+        {
+            let nextColumnHead = NSTextField(frame: NSRect(x: nextColLeft, y: nextRowTop - tfHeight, width: tfWidth, height: tfHeight))
+            nextColumnHead.alignment = .center
+            nextColumnHead.drawsBackground = false
+            nextColumnHead.isEditable = false
+            nextColumnHead.integerValue = nextColNum
             
-            rowViews.append(nextRow)
+            self.contentView.addSubview(nextColumnHead)
+            
+            nextColLeft += tfWidth
         }
         
-        let gridView = NSGridView(views: rowViews)
-        gridView.frame = self.contentView.frame
-        self.contentView.addSubview(gridView)
+        nextRowTop -= tfHeight
+        
+        let formatter = NumberFormatter()
+        formatter.usesSignificantDigits = true
+        formatter.minimumSignificantDigits = 3
+        formatter.maximumSignificantDigits = 10
+        
+        for nextRow in 0..<self.matrix.rows
+        {
+            nextColLeft = 0
+            
+            let nextRowHead = NSTextField(frame: NSRect(x: nextColLeft, y: nextRowTop - tfHeight, width: colNumWidth, height: tfHeight))
+            nextRowHead.alignment = .center
+            nextRowHead.drawsBackground = false
+            nextRowHead.isEditable = false
+            nextRowHead.integerValue = nextRow
+            
+            self.contentView.addSubview(nextRowHead)
+            
+            nextColLeft = colNumWidth
+            for nextCol in 0..<self.matrix.columns
+            {
+                let nextTextField = NSTextField(frame: NSRect(x: nextColLeft, y: nextRowTop - tfHeight, width: tfWidth, height: tfHeight))
+                
+                nextTextField.alignment = .center
+                nextTextField.drawsBackground = false
+                nextTextField.formatter = formatter
+                nextTextField.doubleValue = self.matrix[nextRow, nextCol]
+                
+                self.contentView.addSubview(nextTextField)
+                
+                nextColLeft += tfWidth
+            }
+            
+            nextRowTop -= tfHeight
+        }
         
         self.window.title = self.windowTitle
         self.window.makeKeyAndOrderFront(self)
     }
     
+    func windowDidResize(_ notification: Notification) {
+        
+        guard let wWindow = notification.object as? NSWindow, wWindow == self.window else
+        {
+            return
+        }
+        
+        DLog("In windowDidResize()")
+        
+        let tfWidth:CGFloat = 100.0
+        let colNumWidth:CGFloat = 40.0
+        let tfHeight:CGFloat = 21.0
+        
+        let contentView = self.contentView!
+        
+        guard let parent = contentView.superview?.superview else
+        {
+            DLog("Couldn't get superview")
+            return
+        }
+        
+        let newFrameSize:NSSize = NSSize(width:max(colNumWidth + CGFloat(self.matrix.columns) * tfWidth, parent.frame.size.width), height: max(CGFloat(1 + self.matrix.rows) * tfHeight, parent.frame.size.height))
+        // let newBounds:NSSize = NSSize(width:colNumWidth + CGFloat(self.matrix.columns) * tfWidth, height: CGFloat(1 + self.matrix.rows) * tfHeight)
+        
+        self.contentView.frame.size = newFrameSize
+    }
     
 }
