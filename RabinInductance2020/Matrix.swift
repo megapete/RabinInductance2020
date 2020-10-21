@@ -52,8 +52,8 @@ class Matrix:CustomStringConvertible {
     let type:NumberType
     
     /// The actual buffers that hold the matrix
-    private var doubleBuffPtr:UnsafeMutablePointer<__CLPK_doublereal>
-    private var complexBuffPtr:UnsafeMutablePointer<__CLPK_doublecomplex>
+    var doubleBuffPtr:UnsafeMutablePointer<__CLPK_doublereal>
+    var complexBuffPtr:UnsafeMutablePointer<__CLPK_doublecomplex>
     
     /// The number of rows in the matrix
     let rows:Int
@@ -64,8 +64,18 @@ class Matrix:CustomStringConvertible {
     init(type:NumberType, rows:UInt, columns:UInt) {
         
         self.type = type
-        self.rows = Int(rows)
-        self.columns = Int(columns)
+        
+        // force vectors to have a single column instead of a single row
+        if rows == 1
+        {
+            self.columns = 1
+            self.rows = Int(columns)
+        }
+        else
+        {
+            self.rows = Int(rows)
+            self.columns = Int(columns)
+        }
         
         if type == .Double
         {
@@ -83,21 +93,75 @@ class Matrix:CustomStringConvertible {
         }
     }
     
+    /// Copy constructor. Note that this function makes a deep copy of the source matrix.
+    /// - Parameter srcMatrix: The matrix to copy
+    init(srcMatrix:Matrix)
+    {
+        self.type = srcMatrix.type
+        self.rows = srcMatrix.rows
+        self.columns = srcMatrix.columns
+        
+        if self.type == .Double
+        {
+            self.doubleBuffPtr = UnsafeMutablePointer<__CLPK_doublereal>.allocate(capacity: self.rows * self.columns)
+            self.doubleBuffPtr.assign(from: srcMatrix.doubleBuffPtr, count: rows * columns)
+            self.complexBuffPtr = UnsafeMutablePointer<__CLPK_doublecomplex>.allocate(capacity: 1)
+        }
+        else
+        {
+            self.complexBuffPtr = UnsafeMutablePointer<__CLPK_doublecomplex>.allocate(capacity: self.rows * self.columns)
+            self.complexBuffPtr.assign(from: srcMatrix.complexBuffPtr, count: rows * columns)
+            self.doubleBuffPtr = UnsafeMutablePointer<__CLPK_doublereal>.allocate(capacity: 1)
+        }
+    }
+    
+    /// Dummy initializer
+    init()
+    {
+        self.type = .Double
+        self.rows = 0
+        self.columns = 0
+        self.complexBuffPtr = UnsafeMutablePointer<__CLPK_doublecomplex>.allocate(capacity: 1)
+        self.doubleBuffPtr = UnsafeMutablePointer<__CLPK_doublereal>.allocate(capacity: 1)
+    }
+    
+    /// We need to take care of memory cleanup ourselves
+    deinit {
+        self.doubleBuffPtr.deallocate()
+        self.complexBuffPtr.deallocate()
+    }
+    
     /// Accessor for Double matrices
     subscript(row:Int, column:Int) -> Double
     {
         get {
             
-            assert(self.type == .Double, "Illegal type")
-            assert(checkBounds(row: row, column: column), "Subscript out of bounds")
+            if self.type != .Double
+            {
+                PCH_ErrorAlert(message: "Subscript error", info: "Illegal type")
+                return Double.nan
+            }
+            if !checkBounds(row: row, column: column)
+            {
+                PCH_ErrorAlert(message: "Subscript error", info: "Subscript out of bounds")
+                return Double.nan
+            }
 
             return self.doubleBuffPtr[(column * self.rows) + row]
         }
         
         set {
             
-            assert(self.type == .Double, "Illegal type")
-            assert(checkBounds(row: row, column: column), "Subscript out of bounds")
+            if self.type != .Double
+            {
+                PCH_ErrorAlert(message: "Subscript error", info: "Illegal type")
+                return
+            }
+            if !checkBounds(row: row, column: column)
+            {
+                PCH_ErrorAlert(message: "Subscript error", info: "Subscript out of bounds")
+                return
+            }
 
             self.doubleBuffPtr[(column * self.rows) + row] = newValue
         }
@@ -108,8 +172,16 @@ class Matrix:CustomStringConvertible {
     {
         get {
             
-            assert(self.type == .Complex, "Illegal type")
-            assert(checkBounds(row: row, column: column), "Subscript out of bounds")
+            if self.type != .Complex
+            {
+                PCH_ErrorAlert(message: "Subscript error", info: "Illegal type")
+                return Complex.ComplexNan
+            }
+            if !checkBounds(row: row, column: column)
+            {
+                PCH_ErrorAlert(message: "Subscript error", info: "Subscript out of bounds")
+                return Complex.ComplexNan
+            }
 
             let clpk_result = self.complexBuffPtr[Int((column * self.rows) + row)]
             let result = Complex(real: clpk_result.r, imag: clpk_result.i)
@@ -118,8 +190,16 @@ class Matrix:CustomStringConvertible {
         
         set {
             
-            assert(self.type == .Double, "Illegal type")
-            assert(checkBounds(row: row, column: column), "Subscript out of bounds")
+            if self.type != .Complex
+            {
+                PCH_ErrorAlert(message: "Subscript error", info: "Illegal type")
+                return
+            }
+            if !checkBounds(row: row, column: column)
+            {
+                PCH_ErrorAlert(message: "Subscript error", info: "Subscript out of bounds")
+                return
+            }
 
             let clpk_newValue = __CLPK_doublecomplex(r: newValue.real, i: newValue.imag)
             self.complexBuffPtr[(column * self.rows) + row] = clpk_newValue
@@ -128,7 +208,12 @@ class Matrix:CustomStringConvertible {
     
     static func * (scalar:Double, matrix:Matrix) -> Matrix
     {
-        assert(matrix.type == .Double, "Mismatched types")
+        if matrix.type != .Double
+        {
+            PCH_ErrorAlert(message: "Scalar multiplication error", info: "Illegal type")
+            return Matrix()
+        }
+        
         let result = Matrix(type: .Double, rows: UInt(matrix.rows), columns: UInt(matrix.columns))
         
         for i in 0..<matrix.columns
@@ -143,13 +228,116 @@ class Matrix:CustomStringConvertible {
         return result
     }
     
-    // return true if the bounds are okay
+    static func * (lhs:Matrix, rhs:Matrix) -> Matrix
+    {
+        if lhs.columns != rhs.rows
+        {
+            PCH_ErrorAlert(message: "Matrix multiplication", info: "Mismatched dimensions for multiply")
+            return Matrix()
+        }
+        if (lhs.type != rhs.type)
+        {
+            PCH_ErrorAlert(message: "Matrix multiplication", info: "Mismatched types")
+            return Matrix()
+        }
+        
+        let result = Matrix(type: lhs.type, rows: UInt(lhs.rows), columns: UInt(rhs.columns))
+        
+        let m = __CLPK_integer(lhs.rows)
+        let n = __CLPK_integer(rhs.columns)
+        let k = __CLPK_integer(lhs.columns)
+        let lda = k
+        let ldb = n
+        let ldc = m
+        
+        if lhs.type == .Double
+        {
+            let A = lhs.doubleBuffPtr
+            let B = rhs.doubleBuffPtr
+            let C = result.doubleBuffPtr
+            
+            if rhs.columns == 1
+            {
+                // do matrix-vector multiply
+                cblas_dgemv(CblasColMajor, CblasNoTrans, m, k, 1.0, A, lda, B, 1, 0.0, C, 1)
+            }
+            else
+            {
+                cblas_dgemm(CblasColMajor, CblasNoTrans, CblasNoTrans, m, n, k, 1.0, A, lda, B, ldb, 0.0, C, ldc)
+            }
+        }
+        else
+        {
+            let A = lhs.complexBuffPtr
+            let B = rhs.complexBuffPtr
+            let C = result.complexBuffPtr
+            
+            var alpha = __CLPK_doublecomplex(r: 1.0, i: 0.0)
+            var beta = __CLPK_doublecomplex(r: 0.0, i: 0.0)
+            
+            if rhs.columns == 1
+            {
+                // do matrix-vector multiply
+                cblas_zgemv(CblasColMajor, CblasNoTrans, m, k, &alpha, A, lda, B, 1, &beta, C, 1)
+            }
+            else
+            {
+                cblas_zgemm(CblasColMajor, CblasNoTrans, CblasNoTrans, m, n, k, &alpha, A, lda, B, ldb, &beta, C, ldc)
+            }
+        }
+        
+        return result
+    }
+    
+    /// return true if the bounds are okay
     private func checkBounds(row:Int, column:Int) -> Bool
     {
         return row < self.rows && column < self.columns
     }
     
-    /// A  routine to check whether self is a symmetric matrix
+    /// General matrix solver (slowest method) for AX=B, where A is 'self'. In the interest of speed, we pass the 'B' matrix as a pointer instead of a matrix. **NOTE** IT IS ASSUMED THAT A.rows == B.rows (this fact is NOT checked by this routine).
+    /// - Parameter B: On entry, the matrix B (as in AX=B). On successful exit, the solution matrix X
+    /// - Parameter numBcols: The number of columns in B (equal to 1 for a vector)
+    /// - Parameter overwriteAMatrix: If 'true', self will be overwritten and hold the LU factorization of A
+    /// - Returns: 'true' if the call was successful, otherwise 'false'
+    func SolveForDoubleGeneralMatrix(B: UnsafeMutablePointer<__CLPK_doublereal>, numBcols:Int, overwriteAMatrix:Bool) -> Bool
+    {
+        var n = __CLPK_integer(self.rows)
+        var lda = n
+        var ldb = n
+        var nrhs = __CLPK_integer(numBcols)
+        var ipiv:[__CLPK_integer] = Array(repeating: 0, count: self.rows)
+        var info = __CLPK_integer(0)
+        let A = UnsafeMutablePointer<__CLPK_doublereal>.allocate(capacity: self.rows * self.columns)
+        A.assign(from: self.doubleBuffPtr, count: self.rows * self.columns)
+        
+        dgesv_(&n, &nrhs, A, &lda, &ipiv, B, &ldb, &info)
+        
+        if info < 0
+        {
+            PCH_ErrorAlert(message: "DGESV Error", info: "Illegal Argument #\(info)")
+            return false
+        }
+        else if info > 0
+        {
+            PCH_ErrorAlert(message: "DGESV Error", info: "The element U(\(info),\(info)) is exactly zero.")
+            return false
+        }
+        
+        if overwriteAMatrix
+        {
+            self.doubleBuffPtr.deallocate()
+            self.doubleBuffPtr = A
+        }
+        else
+        {
+            A.deallocate()
+        }
+        
+        return true
+    }
+    
+    /// A  routine to check whether self is a symmetric matrix. Note that this function can be quite slow, so it should not be called in a loop.
     func TestForSymmetry() -> Bool
     {
         guard self.rows == self.columns else
@@ -192,8 +380,9 @@ class Matrix:CustomStringConvertible {
         return true
     }
     
-    /// A routine to check whether a matrix is really positive-definite or not (inductance matrix is supposed to always be). The idea comes from this discussion: https://icl.cs.utk.edu/lapack-forum/viewtopic.php?f=2&t=3534. The idea is to try and perform a Cholesky factorization of the matrix (LAPACK routine DPOTRF). If the factorization is successfull, the matrix is positive definite.
-    /// - Parameter overwriteExistingMatrix: The function actually saves the Cholesky factorization by overwriting the existing buffer for this matrix
+    /// A routine to check whether a matrix is really positive-definite or not (inductance matrix is supposed to always be). The idea comes from this discussion: https://icl.cs.utk.edu/lapack-forum/viewtopic.php?f=2&t=3534. We need to try and perform a Cholesky factorization of the matrix (LAPACK routine DPOTRF). If the factorization is successfull, the matrix is positive definite.
+    /// - Parameter overwriteExistingMatrix: If 'true', the function actually saves the Cholesky factorization by overwriting the existing buffer for this matrix
+    /// - Returns: 'true' if the matrix is Positive Definite, otherwise 'false'
     func TestPositiveDefinite(overwriteExistingMatrix:Bool = false) -> Bool
     {
         guard self.TestForSymmetry() else
@@ -208,14 +397,15 @@ class Matrix:CustomStringConvertible {
             var n = __CLPK_integer(self.rows)
             var lda = n
             var info = __CLPK_integer(0)
-            let A = UnsafeMutablePointer<__CLPK_doublereal>.allocate(capacity: Int(rows * columns))
-            A.assign(from: self.doubleBuffPtr, count: Int(rows * columns))
+            let A = UnsafeMutablePointer<__CLPK_doublereal>.allocate(capacity: self.rows * self.columns)
+            A.assign(from: self.doubleBuffPtr, count: self.rows * self.columns)
+            
             
             dpotrf_(&uplo, &n, A, &lda, &info)
             
             if info < 0
             {
-                DLog("Illegal Argument #\(info)")
+                PCH_ErrorAlert(message: "DPOTRF Error", info: "Illegal Argument #\(info)")
                 return false
             }
             else if info > 0
@@ -226,7 +416,45 @@ class Matrix:CustomStringConvertible {
             
             if overwriteExistingMatrix
             {
+                self.doubleBuffPtr.deallocate()
                 self.doubleBuffPtr = A
+            }
+            else
+            {
+                A.deallocate()
+            }
+        }
+        else // .Complex
+        {
+            var uplo:Int8 = 85 // 'U'
+            var n = __CLPK_integer(self.rows)
+            var lda = n
+            var info = __CLPK_integer(0)
+            let A = UnsafeMutablePointer<__CLPK_doublecomplex>.allocate(capacity: self.rows * self.columns)
+            A.assign(from: self.complexBuffPtr, count: self.rows * self.columns)
+            
+            
+            zpotrf_(&uplo, &n, A, &lda, &info)
+            
+            if info < 0
+            {
+                PCH_ErrorAlert(message: "ZPOTRF Error", info: "Illegal Argument #\(info)")
+                return false
+            }
+            else if info > 0
+            {
+                DLog("The matrix is not positive definite (leading minor of order \(info)")
+                return false
+            }
+            
+            if overwriteExistingMatrix
+            {
+                self.complexBuffPtr.deallocate()
+                self.complexBuffPtr = A
+            }
+            else
+            {
+                A.deallocate()
             }
         }
         
@@ -294,10 +522,16 @@ class MatrixDisplay:NSObject, NSWindowDelegate {
         
         nextRowTop -= tfHeight
         
-        let formatter = NumberFormatter()
-        formatter.usesSignificantDigits = true
-        formatter.minimumSignificantDigits = 3
-        formatter.maximumSignificantDigits = 10
+        let decimalFormatter = NumberFormatter()
+        decimalFormatter.usesSignificantDigits = true
+        decimalFormatter.minimumSignificantDigits = 3
+        decimalFormatter.maximumSignificantDigits = 10
+        
+        let scientificFormatter = NumberFormatter()
+        scientificFormatter.numberStyle = .scientific
+        decimalFormatter.usesSignificantDigits = true
+        decimalFormatter.minimumSignificantDigits = 3
+        scientificFormatter.maximumSignificantDigits = 7
         
         for nextRow in 0..<self.matrix.rows
         {
@@ -318,8 +552,18 @@ class MatrixDisplay:NSObject, NSWindowDelegate {
                 
                 nextTextField.alignment = .center
                 nextTextField.drawsBackground = false
-                nextTextField.formatter = formatter
-                nextTextField.doubleValue = self.matrix[nextRow, nextCol]
+                
+                let doubleValue:Double = self.matrix[nextRow, nextCol]
+                if fabs(doubleValue) < 1.0E-5 || fabs(doubleValue) > 1.0E5
+                {
+                    nextTextField.formatter = scientificFormatter
+                }
+                else
+                {
+                    nextTextField.formatter = decimalFormatter
+                }
+                
+                nextTextField.doubleValue = doubleValue
                 
                 self.contentView.addSubview(nextTextField)
                 

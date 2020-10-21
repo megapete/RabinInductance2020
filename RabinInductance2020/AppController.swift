@@ -92,7 +92,7 @@ class AppController: NSObject {
         
         let phase = Phase(core: core, coils: [innerCoil, outerCoil])
         
-        let testMatrix = 1000.0 * phase.InductanceMatrix()
+        let testMatrix = phase.InductanceMatrix()
         
         let testPosDef = testMatrix.TestPositiveDefinite()
         
@@ -101,6 +101,37 @@ class AppController: NSObject {
         let matrixDisplay = MatrixDisplay(windowTitle: "Matrix", matrix: testMatrix)
         
         print("Reactance (pu): \(phase.LeakageReactancePU(baseVA: 10.0E6 / 3.0, baseI: 83.67))")
+    }
+    
+    @IBAction func handleTest4(_ sender: Any) {
+        
+        let A = Matrix(type: .Double, rows: 8, columns: 8)
+        for i in 0..<8
+        {
+            for j in 0..<8
+            {
+                A[i, j] = Double(i + 1) * 10.0 + Double(j + 1)
+            }
+        }
+        
+        let _ = MatrixDisplay(windowTitle: "A-matrix", matrix: A)
+        
+        let X = Matrix(type: .Double, rows: 8, columns: 1)
+        
+        var nextNum = 5.0
+        for i in 0..<8
+        {
+            X[i, 0] = nextNum
+            
+            nextNum += 2.0
+        }
+        
+        let _ = MatrixDisplay(windowTitle: "X-matrix", matrix: X)
+        
+        let _ = MatrixDisplay(windowTitle: "B-Matrix", matrix: A * X)
+        
+        let B = A * X
+        
     }
     
     // MARK: Simple (unscaled) Versions of Del Vecchio functions (for testing)
