@@ -11,7 +11,7 @@ import Cocoa
 import Accelerate
 
 /// A general-purpose, lightweight matrix class. Double and Complex types are allowed,
-class Matrix:CustomStringConvertible {
+class Matrix:CustomStringConvertible, Equatable {
     
     /// A simple way of looking at the matrix in the Debug window. Don't use this for huge (or supersmall) numbers
     var description: String {
@@ -228,6 +228,11 @@ class Matrix:CustomStringConvertible {
         return result
     }
     
+    static func *= (matrix:inout Matrix, scalar:Double)
+    {
+        matrix = scalar * matrix
+    }
+    
     static func * (lhs:Matrix, rhs:Matrix) -> Matrix
     {
         if lhs.columns != rhs.rows
@@ -287,6 +292,200 @@ class Matrix:CustomStringConvertible {
         }
         
         return result
+    }
+    
+    static func *= (lhs:inout Matrix, rhs:Matrix)
+    {
+        lhs = lhs * rhs
+    }
+    
+    static func + (lhs:Matrix, rhs:Matrix) -> Matrix
+    {
+        if lhs.type != rhs.type
+        {
+            DLog("Mismatched types!")
+            return Matrix()
+        }
+        
+        if lhs.rows != rhs.rows || lhs.columns != rhs.columns
+        {
+            DLog("Mismatched dimensions!")
+            return Matrix()
+        }
+        
+        let result = Matrix(srcMatrix: lhs)
+        
+        for i in 0..<lhs.rows
+        {
+            for j in 0..<lhs.columns
+            {
+                if result.type == .Double
+                {
+                    let res:Double = result[i, j]
+                    result[i, j] = res + rhs[i, j]
+                }
+                else // .Complex
+                {
+                    let res:Complex = result[i, j]
+                    result[i, j] = res + rhs[i, j]
+                }
+            }
+        }
+        
+        return result
+    }
+    
+    static func += (lhs:Matrix, rhs:Matrix)
+    {
+        if lhs.type != rhs.type
+        {
+            DLog("Mismatched types!")
+            return
+        }
+        
+        if lhs.rows != rhs.rows || lhs.columns != rhs.columns
+        {
+            DLog("Mismatched dimensions!")
+            return
+        }
+        
+        for i in 0..<lhs.rows
+        {
+            for j in 0..<lhs.columns
+            {
+                if lhs.type == .Double
+                {
+                    let res:Double = lhs[i, j]
+                    lhs[i, j] = res + rhs[i, j]
+                }
+                else // .Complex
+                {
+                    let res:Complex = lhs[i, j]
+                    lhs[i, j] = res + rhs[i, j]
+                }
+            }
+        }
+    }
+    
+    static func - (lhs:Matrix, rhs:Matrix) -> Matrix
+    {
+        if lhs.type != rhs.type
+        {
+            DLog("Mismatched types!")
+            return Matrix()
+        }
+        
+        if lhs.rows != rhs.rows || lhs.columns != rhs.columns
+        {
+            DLog("Mismatched dimensions!")
+            return Matrix()
+        }
+        
+        let result = Matrix(srcMatrix: lhs)
+        
+        for i in 0..<lhs.rows
+        {
+            for j in 0..<lhs.columns
+            {
+                if result.type == .Double
+                {
+                    let res:Double = result[i, j]
+                    result[i, j] = res - rhs[i, j]
+                }
+                else // .Complex
+                {
+                    let res:Complex = result[i, j]
+                    result[i, j] = res - rhs[i, j]
+                }
+            }
+        }
+        
+        return result
+    }
+    
+    static func -= (lhs:Matrix, rhs:Matrix)
+    {
+        if lhs.type != rhs.type
+        {
+            DLog("Mismatched types!")
+            return
+        }
+        
+        if lhs.rows != rhs.rows || lhs.columns != rhs.columns
+        {
+            DLog("Mismatched dimensions!")
+            return
+        }
+        
+        for i in 0..<lhs.rows
+        {
+            for j in 0..<lhs.columns
+            {
+                if lhs.type == .Double
+                {
+                    let res:Double = lhs[i, j]
+                    lhs[i, j] = res - rhs[i, j]
+                }
+                else // .Complex
+                {
+                    let res:Complex = lhs[i, j]
+                    lhs[i, j] = res - rhs[i, j]
+                }
+            }
+        }
+    }
+    
+    static func == (lhs: Matrix, rhs: Matrix) -> Bool {
+        
+        if lhs.type != rhs.type
+        {
+            DLog("Mismatched types!")
+            return false
+        }
+        
+        if lhs.rows != rhs.rows || lhs.columns != rhs.columns
+        {
+            DLog("Mismatched dimensions!")
+            return false
+        }
+        
+        let precision = 1.0E-8
+        
+        var maxAbsoluteDifference = 0.0
+        
+        for i in 0..<lhs.rows
+        {
+            for j in 0..<lhs.columns
+            {
+                if lhs.type == .Double
+                {
+                    let lhsValue:Double = lhs[i, j]
+                    let rhsValue:Double = rhs[i, j]
+                    
+                    maxAbsoluteDifference = max(maxAbsoluteDifference, fabs(lhsValue - rhsValue))
+                    
+                    if fabs(lhsValue - rhsValue) / lhsValue > precision
+                    {
+                        DLog("Error is: \(fabs(lhsValue - rhsValue) / lhsValue)")
+                        return false
+                    }
+                }
+                else // .Complex
+                {
+                    let lhsValue:Complex = lhs[i, j]
+                    let rhsValue:Complex = rhs[i, j]
+                    
+                    if fabs(lhsValue.real - rhsValue.real) / lhsValue.real > precision || fabs(lhsValue.imag - rhsValue.imag) / lhsValue.imag > precision
+                    {
+                        return false
+                    }
+                }
+            }
+        }
+        
+        DLog("Matrices are equal, max absolute diff: \(maxAbsoluteDifference)")
+        
+        return true
     }
     
     /// return true if the bounds are okay

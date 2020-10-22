@@ -98,7 +98,7 @@ class AppController: NSObject {
         
         print("Matrix is Positive Definite: \(testPosDef)")
         
-        let matrixDisplay = MatrixDisplay(windowTitle: "Matrix", matrix: testMatrix)
+        let _ = MatrixDisplay(windowTitle: "Matrix", matrix: testMatrix)
         
         print("Reactance (pu): \(phase.LeakageReactancePU(baseVA: 10.0E6 / 3.0, baseI: 83.67))")
     }
@@ -140,6 +140,88 @@ class AppController: NSObject {
         }
         
         let _ = MatrixDisplay(windowTitle: "Solved X", matrix: solvedX)
+    }
+    
+    @IBAction func handleTest5(_ sender: Any) {
+        
+        let core = Core(realWindowHt: 1.26, radius: 0.483 / 2)
+        
+        // we're tripling the window height, so we'll just add one window height to the z-dims of the coils
+        let fullInnerSection = Section(sectionID: Section.nextSerialNumber, zMin: 0 + 3.5 * meterPerInch, zMax: 0 + (3.5 + 41.025) * meterPerInch, N: 64, inNode: 0, outNode: 0)
+        let fullOuterSection = Section(sectionID: Section.nextSerialNumber, zMin: 0 + 3.5 * meterPerInch, zMax: 0 + (3.5 + 41.025) * meterPerInch, N: 613, inNode: 0, outNode: 0)
+        
+        let innerCoil = Coil(coilID: 1, name: "Inner", currentDirection: -1, innerRadius: 20.5 * meterPerInch / 2, outerRadius: 23.723 * meterPerInch / 2, I: 801.3, sections: [], core: core)
+        let outerCoil = Coil(coilID: 2, name: "Outer", currentDirection: 1, innerRadius: 26.723 * meterPerInch / 2, outerRadius: 30.274 * meterPerInch / 2, I: 83.67, sections: [], core: core)
+        
+        fullInnerSection.parent = innerCoil
+        fullOuterSection.parent = outerCoil
+        
+        innerCoil.sections = fullInnerSection.SplitSection(numSections: 64)
+        outerCoil.sections = fullOuterSection.SplitSection(numSections: 60)
+        
+        let totalSections = innerCoil.sections.count + outerCoil.sections.count
+        
+        let phase = Phase(core: core, coils: [innerCoil, outerCoil])
+        
+        let A = phase.InductanceMatrix()
+        
+        let testPosDef = A.TestPositiveDefinite()
+        
+        print("Matrix is Positive Definite: \(testPosDef)")
+        
+        // let _ = MatrixDisplay(windowTitle: "M-Matrix", matrix: A)
+        
+        print("Reactance (pu): \(phase.LeakageReactancePU(baseVA: 10.0E6 / 3.0, baseI: 83.67))")
+        
+        let X = Matrix(type: .Double, rows: UInt(totalSections), columns: 1)
+        for i in 0..<(totalSections)
+        {
+            X[i, 0] = Double.random(in: 0.5...2.5)
+        }
+        
+        // let _ = MatrixDisplay(windowTitle: "X-matrix", matrix: X)
+        
+        let B = A * X
+        
+        // let _ = MatrixDisplay(windowTitle: "B-Matrix", matrix: B)
+        
+        let solvedX = Matrix(srcMatrix: B)
+        
+        if A.SolveForDoubleGeneralMatrix(B: solvedX.doubleBuffPtr, numBcols: 1)
+        {
+            print("Solved As General Matrix!")
+        }
+        
+        if solvedX == X
+        {
+            print("solvedX equals X")
+        }
+        else
+        {
+            print("ERROR: solvedX not equal to X")
+        }
+        
+        // let _ = MatrixDisplay(windowTitle: "Solved X", matrix: solvedX)
+        
+        let factoredA = Matrix(srcMatrix: A)
+        let _ = factoredA.TestPositiveDefinite(overwriteExistingMatrix: true)
+        // let _ = MatrixDisplay(windowTitle: "Factored M-Matrix", matrix: factoredA)
+        let solvedPosDefX = Matrix(srcMatrix: B)
+        if factoredA.SolveForDoublePositiveDefinite(B: solvedPosDefX.doubleBuffPtr, numBcols: 1)
+        {
+            print("Solved As Positive Definite Matrix!")
+        }
+        
+        if solvedPosDefX == X
+        {
+            print("solvedPosX equals X")
+        }
+        else
+        {
+            print("ERROR: solvedPosDefX not equal to X")
+        }
+        
+        // let _ = MatrixDisplay(windowTitle: "Solved Positive Definite X", matrix: solvedPosDefX)
     }
     
     // MARK: Simple (unscaled) Versions of Del Vecchio functions (for testing)
