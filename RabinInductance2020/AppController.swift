@@ -110,7 +110,7 @@ class AppController: NSObject {
         {
             for j in 0..<8
             {
-                A[i, j] = Double(i + 1) * 10.0 + Double(j + 1)
+                A[i, j] = Double.random(in: -25.2...53.7)
             }
         }
         
@@ -132,6 +132,14 @@ class AppController: NSObject {
         
         let B = A * X
         
+        let solvedX = Matrix(srcMatrix: B)
+        
+        if A.SolveForDoubleGeneralMatrix(B: solvedX.doubleBuffPtr, numBcols: 1)
+        {
+            print("Solved it!")
+        }
+        
+        let _ = MatrixDisplay(windowTitle: "Solved X", matrix: solvedX)
     }
     
     // MARK: Simple (unscaled) Versions of Del Vecchio functions (for testing)

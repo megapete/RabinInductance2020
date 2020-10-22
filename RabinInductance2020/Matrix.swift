@@ -298,9 +298,9 @@ class Matrix:CustomStringConvertible {
     /// General matrix solver (slowest method) for AX=B, where A is 'self'. In the interest of speed, we pass the 'B' matrix as a pointer instead of a matrix. **NOTE** IT IS ASSUMED THAT A.rows == B.rows (this fact is NOT checked by this routine).
     /// - Parameter B: On entry, the matrix B (as in AX=B). On successful exit, the solution matrix X
     /// - Parameter numBcols: The number of columns in B (equal to 1 for a vector)
-    /// - Parameter overwriteAMatrix: If 'true', self will be overwritten and hold the LU factorization of A
+    /// - Parameter overwriteAMatrix: If 'true', self will be overwritten and on exit will hold the LU factorization of A
     /// - Returns: 'true' if the call was successful, otherwise 'false'
-    func SolveForDoubleGeneralMatrix(B: UnsafeMutablePointer<__CLPK_doublereal>, numBcols:Int, overwriteAMatrix:Bool) -> Bool
+    func SolveForDoubleGeneralMatrix(B: UnsafeMutablePointer<__CLPK_doublereal>, numBcols:Int, overwriteAMatrix:Bool = false) -> Bool
     {
         var n = __CLPK_integer(self.rows)
         var lda = n
@@ -315,7 +315,7 @@ class Matrix:CustomStringConvertible {
         
         if info < 0
         {
-            PCH_ErrorAlert(message: "DGESV Error", info: "Illegal Argument #\(info)")
+            PCH_ErrorAlert(message: "DGESV Error", info: "Illegal Argument #\(-info)")
             return false
         }
         else if info > 0
@@ -332,6 +332,30 @@ class Matrix:CustomStringConvertible {
         else
         {
             A.deallocate()
+        }
+        
+        return true
+    }
+    
+    /// Solve AX=B where A is a positive definite matrix, and instead of A, use the Cholesky factorization of A (which should have been created using DPOTRF). **NOTE**: There is no checking done in this routine.
+    /// - Parameter B: On entry, the general matrix B (as in AX=B). On successful exit, the solution matrix X
+    /// - Parameter numBcols: The number of columns in B (equal to 1 for a vector)
+    /// - Returns: 'true' if the call was successful, otherwise 'false'
+    func SolveForDoublePositiveDefinite(B: UnsafeMutablePointer<__CLPK_doublereal>, numBcols:Int) -> Bool
+    {
+        var uplo:Int8 = 85 // 'U'
+        var n = __CLPK_integer(self.rows)
+        var lda = n
+        var ldb = n
+        var nrhs = __CLPK_integer(numBcols)
+        var info = __CLPK_integer(0)
+        
+        dpotrs_(&uplo, &n, &nrhs, self.doubleBuffPtr, &lda, B, &ldb, &info)
+        
+        if info < 0
+        {
+            PCH_ErrorAlert(message: "DPOTRS Error", info: "Illegal Argument #\(-info)")
+            return false
         }
         
         return true
@@ -405,7 +429,7 @@ class Matrix:CustomStringConvertible {
             
             if info < 0
             {
-                PCH_ErrorAlert(message: "DPOTRF Error", info: "Illegal Argument #\(info)")
+                PCH_ErrorAlert(message: "DPOTRF Error", info: "Illegal Argument #\(-info)")
                 return false
             }
             else if info > 0
@@ -438,7 +462,7 @@ class Matrix:CustomStringConvertible {
             
             if info < 0
             {
-                PCH_ErrorAlert(message: "ZPOTRF Error", info: "Illegal Argument #\(info)")
+                PCH_ErrorAlert(message: "ZPOTRF Error", info: "Illegal Argument #\(-info)")
                 return false
             }
             else if info > 0
