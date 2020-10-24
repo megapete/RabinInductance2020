@@ -20,10 +20,48 @@ class Coil:Codable, Equatable {
         return lhs.coilID == rhs.coilID
     }
     
-    enum Region {
+    enum Region:Int, Codable {
         case I
         case II
         case III
+    }
+    
+    struct BField:Codable {
+        
+        let region:Region
+        let radial:Double
+        let axial:Double
+        
+        init(at point:NSPoint, for coil:Coil)
+        {
+            let r = Double(point.x)
+            let z = Double(point.y)
+            
+            if r < coil.innerRadius
+            {
+                self.region = .I
+            }
+            else if r <= coil.outerRadius
+            {
+                self.region = .II
+            }
+            else
+            {
+                self.region = .III
+            }
+            
+            var radialSum = 0.0
+            var axialSum = 0.0
+            
+            if self.region == .I
+            {
+                for n in 1...convergenceIterations
+                {
+                    let m = Double(n) * π / coil.core.useWindowHt
+                    let x = m * r
+                }
+            }
+        }
     }
     
     let coilID:Int
