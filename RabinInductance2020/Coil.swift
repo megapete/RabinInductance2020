@@ -26,11 +26,13 @@ class Coil:Codable, Equatable {
         case III
     }
     
+    
+    
     struct BField:Codable {
         
         let region:Region
-        let radial:Double
-        let axial:Double
+        let radial:Double = 0.0
+        let axial:Double = 0.0
         
         init(at point:NSPoint, for coil:Coil)
         {
@@ -226,7 +228,7 @@ class Coil:Codable, Equatable {
         self.innerRadius = innerRadius
         self.outerRadius = outerRadius
         self.I = I
-        self.sections = sections
+        self.sections = sections.sorted(by: {$0.zMin < $1.zMin})
         self.core = core
         
         for index in 0..<3
@@ -275,6 +277,98 @@ class Coil:Codable, Equatable {
                 self.Integral_L1n[index].append(newL1n)
             }
         }
+    }
+    
+    /// Return the vector potential at the point passed to the routine
+    func VectorPotential(at point:NSPoint) -> Double
+    {
+        let r = Double(point.x)
+        let r1 = self.innerRadius
+        let r2 = self.outerRadius
+        let z = Double(point.y)
+        let L = self.core.useWindowHt
+        
+        let J0 = self.Jn(n: 0, z: z)
+        if J0 == 0.0
+        {
+            return 0.0
+        }
+        
+        var result = µ0 * J0
+        
+        if r < self.innerRadius
+        {
+            // regiom I
+            result *= (r2 - r1) / 2 * r
+            
+            let sumQueue = DispatchQueue(label: "com.huberistech.rabin_inductance_2020.A_sum")
+            
+            var sum = 0.0
+            // for i in 0..<convergenceIterations
+            DispatchQueue.concurrentPerform(iterations: convergenceIterations)
+            {
+                (i:Int) -> Void in // this is the way to specify one of those "dangling" closures
+            
+                let n = i + 1
+                
+                let m = Double(n) * π / L
+                
+                let x = m * r
+                
+                let Jn = self.Jn(n: n, z: z)
+                
+                let J_M_exp = log(fabs(Jn)) + log(m) * -2
+                let J_value = Jn < 0 ? -1.0 : 1.0
+                let J_M_scaled = Coil.ScaledReturnType(terms: [ScaledReturnType.Term(scale: J_M_exp, scaledValue: J_value)])
+                
+                let I1 = Coil.ScaledReturnType(terms:[ScaledReturnType.Term(scale: x, scaledValue: gsl_sf_bessel_I1_scaled(x))])
+                let firstProduct = J_M_scaled * self.Cn[0][n] * I1
+                
+                let K1 = Coil.ScaledReturnType(terms: [ScaledReturnType.Term(scale: -x, scaledValue: gsl_sf_bessel_K1_scaled(x))])
+                let secondProduct = J_M_scaled * self.Dn[0][n] * K1
+                
+                let innerSum = (firstProduct + secondProduct).totalTrueValue * cos(m * z)
+                
+                sumQueue.sync {
+                    sum += innerSum
+                }
+            }
+            
+            sum *= µ0
+            
+            result += sum
+            
+        }
+        else if r <= self.outerRadius
+        {
+            // region II
+        }
+        else
+        {
+            // region III
+        }
+        
+        return 0.0
+    }
+    
+    /// Function to return the Jn value at the given z dimension (will return 0 if z is between sections). This function should be used for calculations of vector potential (A) and induction vector (B).
+    func Jn(n:Int, z:Double) -> Double
+    {
+        for nextSection in self.sections
+        {
+            if nextSection.zMin > z
+            {
+                break
+            }
+            
+            if z >= nextSection.zMin && z <= nextSection.zMax
+            {
+                let J = nextSection.J(I: self.I, radialBuild: self.radialBuild)
+                return nextSection.Jn(n: n, J: J, L: self.core.useWindowHt)
+            }
+        }
+        
+        return 0.0
     }
     
     /// DelVecchio 3e, Eq. 9.61(a)
