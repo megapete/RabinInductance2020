@@ -156,8 +156,8 @@ class AppController: NSObject {
         fullInnerSection.parent = innerCoil
         fullOuterSection.parent = outerCoil
         
-        innerCoil.sections = fullInnerSection.SplitSection(numSections: 64)
-        outerCoil.sections = fullOuterSection.SplitSection(numSections: 60)
+        innerCoil.sections = fullInnerSection.SplitSection(numSections: 64, withInterdisk: 0.15 * 0.98 * meterPerInch)
+        outerCoil.sections = fullOuterSection.SplitSection(numSections: 60, withInterdisk: 0.2 * 0.98 * meterPerInch)
         
         let totalSections = innerCoil.sections.count + outerCoil.sections.count
         
@@ -169,7 +169,7 @@ class AppController: NSObject {
         
         print("Matrix is Positive Definite: \(testPosDef)")
         
-        // let _ = MatrixDisplay(windowTitle: "M-Matrix", matrix: A)
+        let _ = MatrixDisplay(windowTitle: "M-Matrix", matrix: A)
         
         print("Reactance (pu): \(phase.LeakageReactancePU(baseVA: 10.0E6 / 3.0, baseI: 83.67))")
         

@@ -207,10 +207,14 @@ class Section:Codable {
         return result
     }
     
-    /// Convenience routine for testing
-    func SplitSection(numSections:Int) -> [Section]
+    /// Convenience routine for splitting up a section. If modeling with interdisk dimensions, the section to be split up must be UNIFORM (ie: all interdisks must be identical).
+    /// - Parameter numSections: The number of sections to split this one into
+    /// - Parameter withInterdisk: If non-nil, the *shrunk* dimension of the interdisk gaps. If nil, no interdisks are modeled (disks take up the whole height without gaps between them).
+    func SplitSection(numSections:Int, withInterdisk:Double? = nil) -> [Section]
     {
-        let zPerSection = (self.zMax - self.zMin) / Double(numSections)
+        let interDiskDim = withInterdisk == nil ? 0.0 : withInterdisk!
+        
+        let zPerSection = (self.zMax - self.zMin - interDiskDim * Double(numSections - 1)) / Double(numSections)
         var currentLowZ = self.zMin
         
         var result:[Section] = []
@@ -220,7 +224,7 @@ class Section:Codable {
             let newSection = Section(sectionID: Section.nextSerialNumber, zMin: currentLowZ, zMax: currentLowZ + zPerSection, N: self.N / Double(numSections), inNode: 0, outNode: 0, parent: self.parent)
             
             result.append(newSection)
-            currentLowZ += zPerSection
+            currentLowZ += zPerSection + interDiskDim
         }
         
         return result
