@@ -245,11 +245,7 @@ class AppController: NSObject {
         
         print("Jinner = \(fullInnerSection.J(I: innerCoil.I, radialBuild: innerCoil.radialBuild))")
         
-        var checkJ = innerCoil.J[0]
-        for n in 1...convergenceIterations
-        {
-            checkJ += innerCoil.J[n] * cos(n * π * z / L)
-        }
+        
     }
     
 

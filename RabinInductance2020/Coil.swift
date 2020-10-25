@@ -290,18 +290,12 @@ class Coil:Codable, Equatable {
         let r2 = self.outerRadius
         let z = Double(point.y)
         let L = self.core.useWindowHt
-        
-        let J0 = self.Jn(n: 0, z: z)
-        if J0 == 0.0
-        {
-            return 0.0
-        }
-        
-        var result = µ0 * J0
+                
+        var result = µ0 * self.J[0]
         
         if r < self.innerRadius
         {
-            // regiom I
+            // regiom I (index 0)
             result *= (r2 - r1) / 2 * r
             
             let sumQueue = DispatchQueue(label: "com.huberistech.rabin_inductance_2020.A_sum")
@@ -318,7 +312,7 @@ class Coil:Codable, Equatable {
                 
                 let x = m * r
                 
-                let Jn = self.Jn(n: n, z: z)
+                let Jn = self.J[n]
                 
                 let J_M_exp = log(fabs(Jn)) + log(m) * -2
                 let J_value = Jn < 0 ? -1.0 : 1.0
@@ -344,14 +338,87 @@ class Coil:Codable, Equatable {
         }
         else if r <= self.outerRadius
         {
-            // region II
+            // region II (index 1)
+            result *= r2 * r / 2 - r1 * r1 * r1 / (6 * r) - r2 * r2 / 3
+            
+            let sumQueue = DispatchQueue(label: "com.huberistech.rabin_inductance_2020.A_sum")
+            
+            var sum = 0.0
+            // for i in 0..<convergenceIterations
+            DispatchQueue.concurrentPerform(iterations: convergenceIterations)
+            {
+                (i:Int) -> Void in // this is the way to specify one of those "dangling" closures
+            
+                let n = i + 1
+                
+                let m = Double(n) * π / L
+                
+                let x = m * r
+                
+                let Jn = self.J[n]
+                
+                let J_M_exp = log(fabs(Jn)) + log(m) * -2
+                let J_value = Jn < 0 ? -1.0 : 1.0
+                let J_M_scaled = Coil.ScaledReturnType(terms: [ScaledReturnType.Term(scale: J_M_exp, scaledValue: J_value)])
+                
+                let I1 = Coil.ScaledReturnType(terms:[ScaledReturnType.Term(scale: x, scaledValue: gsl_sf_bessel_I1_scaled(x))])
+                let firstProduct = J_M_scaled * self.En[1][n] * I1
+                
+                let K1 = Coil.ScaledReturnType(terms: [ScaledReturnType.Term(scale: -x, scaledValue: gsl_sf_bessel_K1_scaled(x))])
+                let secondProduct = J_M_scaled * self.Fn[1][n] * K1
+                
+                let innerSum = ((firstProduct + secondProduct).totalTrueValue - π / 2 * Coil.L1(x: x)) * cos(m * z)
+                
+                sumQueue.sync {
+                    sum += innerSum
+                }
+            }
+            
+            sum *= µ0
+            
+            result += sum
         }
         else
         {
-            // region III
+            // region III (index 2)
+            result *= (r2 * r2 * r2 - r1 * r1 * r1) / (6 * r)
+            
+            let sumQueue = DispatchQueue(label: "com.huberistech.rabin_inductance_2020.A_sum")
+            
+            var sum = 0.0
+            // for i in 0..<convergenceIterations
+            DispatchQueue.concurrentPerform(iterations: convergenceIterations)
+            {
+                (i:Int) -> Void in // this is the way to specify one of those "dangling" closures
+            
+                let n = i + 1
+                
+                let m = Double(n) * π / L
+                
+                let x = m * r
+                
+                let Jn = self.J[n]
+                
+                let J_M_exp = log(fabs(Jn)) + log(m) * -2
+                let J_value = Jn < 0 ? -1.0 : 1.0
+                let J_M_scaled = Coil.ScaledReturnType(terms: [ScaledReturnType.Term(scale: J_M_exp, scaledValue: J_value)])
+                
+                let K1 = Coil.ScaledReturnType(terms: [ScaledReturnType.Term(scale: -x, scaledValue: gsl_sf_bessel_K1_scaled(x))])
+                let firstProduct = J_M_scaled * self.Gn[2][n] * K1
+                
+                let innerSum = firstProduct.totalTrueValue * cos(m * z)
+                
+                sumQueue.sync {
+                    sum += innerSum
+                }
+            }
+            
+            sum *= µ0
+            
+            result += sum
         }
         
-        return 0.0
+        return result
     }
     
     /// Routine to initialize the J-values with the current coil sections
