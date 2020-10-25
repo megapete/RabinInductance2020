@@ -676,6 +676,12 @@
                                     <action selector="handleTest5:" target="II9-PS-IqR" id="ISU-cJ-D99"/>
                                 </connections>
                             </menuItem>
+                            <menuItem title="Test #6" id="Xq3-oa-UMh">
+                                <modifierMask key="keyEquivalentModifierMask"/>
+                                <connections>
+                                    <action selector="handleTest6:" target="II9-PS-IqR" id="DSr-ZW-ifB"/>
+                                </connections>
+                            </menuItem>
                         </items>
                     </menu>
                 </menuItem>

@@ -216,6 +216,9 @@ class Coil:Codable, Equatable {
     var Integral_I1n:[[ScaledReturnType]] = Array(repeating: [], count: 3)
     var Integral_L1n:[[ScaledReturnType]] = Array(repeating: [], count: 3)
     
+    // J-values for the coil
+    var J:[Double] = []
+    
     var sections:[Section]
     
     let core:Core
@@ -349,6 +352,61 @@ class Coil:Codable, Equatable {
         }
         
         return 0.0
+    }
+    
+    /// Routine to initialize the J-values with the current coil sections
+    func InitializeJ()
+    {
+        self.J.removeAll()
+        
+        for n in 0...convergenceIterations
+        {
+            self.J.append(self.Jn(n: n))
+        }
+    }
+    
+    /// Method for calculating J0 for the COIL, using DelVecchio 9.13 (instead of 9.14 for EACH section)
+    func J0() -> Double
+    {
+        var result = 0.0
+        let I = self.I
+        let rb = self.radialBuild
+        
+        for nextSection in self.sections
+        {
+            let Ji = nextSection.J(I: I, radialBuild: rb)
+            
+            result += Ji * (nextSection.zMax - nextSection.zMin)
+        }
+        
+        result /= self.core.useWindowHt
+        
+        return result
+    }
+    
+    /// Method for calculating Jn for the COIL, using DelVecchio 9.13 (instead of 9.14 for EACH section)
+    func Jn(n index:Int) -> Double
+    {
+        if index == 0
+        {
+            return self.J0()
+        }
+        
+        var result = 0.0
+        let I = self.I
+        let rb = self.radialBuild
+        let n = Double(index)
+        
+        for nextSection in self.sections
+        {
+            let Ji = nextSection.J(I: I, radialBuild: rb)
+            
+            result += Ji * (sin(n * π * nextSection.zMax / self.core.useWindowHt) - sin(n * π * nextSection.zMin / self.core.useWindowHt))
+        }
+        
+        result *= 2 / (n * π)
+        
+        return result
     }
     
     /// Function to return the Jn value at the given z dimension (will return 0 if z is between sections). This function should be used for calculations of vector potential (A) and induction vector (B).

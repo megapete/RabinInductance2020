@@ -224,6 +224,35 @@ class AppController: NSObject {
         // let _ = MatrixDisplay(windowTitle: "Solved Positive Definite X", matrix: solvedPosDefX)
     }
     
+    @IBAction func handleTest6(_ sender: Any) {
+        
+        let core = Core(realWindowHt: 1.26, radius: 0.483 / 2)
+        
+        // we're tripling the window height, so we'll just add one window height to the z-dims of the coils
+        let fullInnerSection = Section(sectionID: Section.nextSerialNumber, zMin: 0 + 3.5 * meterPerInch, zMax: 0 + (3.5 + 41.025) * meterPerInch, N: 64, inNode: 0, outNode: 0)
+        let fullOuterSection = Section(sectionID: Section.nextSerialNumber, zMin: 0 + 3.5 * meterPerInch, zMax: 0 + (3.5 + 41.025) * meterPerInch, N: 613, inNode: 0, outNode: 0)
+        
+        let innerCoil = Coil(coilID: 1, name: "Inner", currentDirection: -1, innerRadius: 20.5 * meterPerInch / 2, outerRadius: 23.723 * meterPerInch / 2, I: 801.3, sections: [], core: core)
+        let outerCoil = Coil(coilID: 2, name: "Outer", currentDirection: 1, innerRadius: 26.723 * meterPerInch / 2, outerRadius: 30.274 * meterPerInch / 2, I: 83.67, sections: [], core: core)
+        
+        fullInnerSection.parent = innerCoil
+        fullOuterSection.parent = outerCoil
+        
+        innerCoil.sections = fullInnerSection.SplitSection(numSections: 64, withInterdisk: 0.15 * 0.98 * meterPerInch)
+        outerCoil.sections = fullOuterSection.SplitSection(numSections: 60, withInterdisk: 0.2 * 0.98 * meterPerInch)
+        
+        innerCoil.InitializeJ()
+        
+        print("Jinner = \(fullInnerSection.J(I: innerCoil.I, radialBuild: innerCoil.radialBuild))")
+        
+        var checkJ = innerCoil.J[0]
+        for n in 1...convergenceIterations
+        {
+            checkJ += innerCoil.J[n] * cos(n * π * z / L)
+        }
+    }
+    
+
     // MARK: Simple (unscaled) Versions of Del Vecchio functions (for testing)
     func IntegralOf_tI1_t_dt_from_0(to x:Double) -> Double
     {
