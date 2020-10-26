@@ -282,6 +282,11 @@ class Coil:Codable, Equatable {
         }
     }
     
+    convenience init(winding:PCH_ExcelDesignFile.Winding)
+    {
+        
+    }
+    
     /// Return the vector potential at the point passed to the routine
     func VectorPotential(at point:NSPoint) -> Double
     {

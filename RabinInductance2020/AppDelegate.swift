@@ -11,7 +11,8 @@ import Cocoa
 class AppDelegate: NSObject, NSApplicationDelegate {
 
     @IBOutlet var window: NSWindow!
-
+    @IBOutlet weak var appController: AppController!
+    
 
     func applicationDidFinishLaunching(_ aNotification: Notification) {
         // Insert code here to initialize your application
@@ -21,6 +22,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Insert code here to tear down your application
     }
 
-
+    func application(_ sender:NSApplication, openFile filename:String) -> Bool
+    {
+        let fixedFileName = (filename as NSString).expandingTildeInPath
+        
+        let url = URL(fileURLWithPath: fixedFileName, isDirectory: false)
+        
+        return appController.doOpen(fileURL: url)
+    }
 }
 

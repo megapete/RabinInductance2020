@@ -19,6 +19,19 @@ class Phase:Codable {
         self.coils = coils
     }
     
+    convenience init(xlDesign:PCH_ExcelDesignFile) {
+        
+        let core = Core(realWindowHt: xlDesign.core.windowHeight, radius: xlDesign.core.diameter / 2)
+        
+        var coils:[Coil] = []
+        for nextWinding in xlDesign.windings
+        {
+            coils.append(Coil(winding: nextWinding))
+        }
+        
+        self.init(core:core, coils:coils)
+    }
+    
     func InductanceMatrix() -> Matrix
     {
         // The key is the sectionID, the value is the index into the matrix

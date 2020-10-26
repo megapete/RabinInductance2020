@@ -7,8 +7,82 @@
 
 import Cocoa
 
-class AppController: NSObject {
+// Key (String) so that the user doesn't have to go searching for the last folder he opened
+let LAST_OPENED_INPUT_FILE_KEY = "PCH_RABIN2020_LastInputFile"
 
+class AppController: NSObject {
+    
+    @IBOutlet weak var mainWindow: NSWindow!
+    var currentPhase:Phase? = nil
+    
+    @IBAction func handleOpenDesignFile(_ sender: Any) {
+        
+        let openPanel = NSOpenPanel()
+        
+        openPanel.canChooseFiles = true
+        openPanel.canChooseDirectories = false
+        openPanel.title = "Design file"
+        openPanel.message = "Open a valid Excel-design-sheet-generated file"
+        openPanel.allowsMultipleSelection = false
+        
+        // If there was a previously successfully opened design file, set that file's directory as the default, otherwise go to the user's Documents folder
+        if let lastFile = UserDefaults.standard.url(forKey: LAST_OPENED_INPUT_FILE_KEY)
+        {
+            openPanel.directoryURL = lastFile.deletingLastPathComponent()
+        }
+        else
+        {
+            openPanel.directoryURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        }
+        
+        if openPanel.runModal() == .OK
+        {
+            if let fileURL = openPanel.url
+            {
+                let _ = self.doOpen(fileURL: fileURL)
+            }
+            else
+            {
+                DLog("This shouldn't ever happen...")
+            }
+        }
+    }
+    
+    func doOpen(fileURL:URL) -> Bool {
+        
+        if !FileManager.default.fileExists(atPath: fileURL.path)
+        {
+            let alert = NSAlert()
+            alert.messageText = "The file does not exist!"
+            alert.alertStyle = .critical
+            let _ = alert.runModal()
+            return false
+        }
+        
+        do {
+            
+            // create the current Transformer from the Excel design file
+            let newDesign = try PCH_ExcelDesignFile(designFile: fileURL)
+            
+            // if we make it here, we have successfully opened the file, so save it as the "last successfully opened file"
+            UserDefaults.standard.set(fileURL, forKey: LAST_OPENED_INPUT_FILE_KEY)
+            
+            NSDocumentController.shared.noteNewRecentDocumentURL(fileURL)
+            
+            self.mainWindow.title = fileURL.lastPathComponent
+            
+            self.currentPhase = Phase(xlDesign: newDesign)
+            
+            return true
+        }
+        catch
+        {
+            let alert = NSAlert(error: error)
+            let _ = alert.runModal()
+            return false
+        }
+    }
+    
     @IBAction func handleTest1(_ sender: Any) {
         
         let core = Core(realWindowHt: 0.680, radius: 0.295 / 2)
@@ -145,10 +219,11 @@ class AppController: NSObject {
     @IBAction func handleTest5(_ sender: Any) {
         
         let core = Core(realWindowHt: 1.26, radius: 0.483 / 2)
-        
+        let zOffset = 3.5 * meterPerInch // (Core.windowHtMultiplier - 1.0) / 2 * core.realWindowHt
+
         // we're tripling the window height, so we'll just add one window height to the z-dims of the coils
-        let fullInnerSection = Section(sectionID: Section.nextSerialNumber, zMin: 0 + 3.5 * meterPerInch, zMax: 0 + (3.5 + 41.025) * meterPerInch, N: 64, inNode: 0, outNode: 0)
-        let fullOuterSection = Section(sectionID: Section.nextSerialNumber, zMin: 0 + 3.5 * meterPerInch, zMax: 0 + (3.5 + 41.025) * meterPerInch, N: 613, inNode: 0, outNode: 0)
+        let fullInnerSection = Section(sectionID: Section.nextSerialNumber, zMin: zOffset + 3.5 * meterPerInch, zMax: zOffset + (3.5 + 41.025) * meterPerInch, N: 64, inNode: 0, outNode: 0)
+        let fullOuterSection = Section(sectionID: Section.nextSerialNumber, zMin: zOffset + 3.5 * meterPerInch, zMax: zOffset + (3.5 + 41.025) * meterPerInch, N: 613, inNode: 0, outNode: 0)
         
         let innerCoil = Coil(coilID: 1, name: "Inner", currentDirection: -1, innerRadius: 20.5 * meterPerInch / 2, outerRadius: 23.723 * meterPerInch / 2, I: 801.3, sections: [], core: core)
         let outerCoil = Coil(coilID: 2, name: "Outer", currentDirection: 1, innerRadius: 26.723 * meterPerInch / 2, outerRadius: 30.274 * meterPerInch / 2, I: 83.67, sections: [], core: core)
@@ -227,7 +302,7 @@ class AppController: NSObject {
     @IBAction func handleTest6(_ sender: Any) {
         
         let core = Core(realWindowHt: 1.26, radius: 0.483 / 2)
-        
+
         // we're tripling the window height, so we'll just add one window height to the z-dims of the coils
         let fullInnerSection = Section(sectionID: Section.nextSerialNumber, zMin: 0 + 3.5 * meterPerInch, zMax: 0 + (3.5 + 41.025) * meterPerInch, N: 64, inNode: 0, outNode: 0)
         let fullOuterSection = Section(sectionID: Section.nextSerialNumber, zMin: 0 + 3.5 * meterPerInch, zMax: 0 + (3.5 + 41.025) * meterPerInch, N: 613, inNode: 0, outNode: 0)
