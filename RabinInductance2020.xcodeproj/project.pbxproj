@@ -11,6 +11,7 @@
 		F51FFFB225445BBA0039D713 /* PCH_Rabin2020_Preferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = F51FFFB125445BBA0039D713 /* PCH_Rabin2020_Preferences.swift */; };
 		F551CF77253C999B00683E03 /* MatrixDisplay.xib in Resources */ = {isa = PBXBuildFile; fileRef = F551CF76253C999B00683E03 /* MatrixDisplay.xib */; };
 		F558CE952534D5EA0049A68B /* Core.swift in Sources */ = {isa = PBXBuildFile; fileRef = F558CE942534D5EA0049A68B /* Core.swift */; };
+		F5C8731C2547359A002E0440 /* PCH_ExcelDesignFileReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5C8731B2547359A002E0440 /* PCH_ExcelDesignFileReader.swift */; };
 		F5E6BA0B25332B0600F522C6 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5E6BA0A25332B0600F522C6 /* AppDelegate.swift */; };
 		F5E6BA0D25332B0700F522C6 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = F5E6BA0C25332B0700F522C6 /* Assets.xcassets */; };
 		F5E6BA1025332B0700F522C6 /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = F5E6BA0E25332B0700F522C6 /* MainMenu.xib */; };
@@ -28,6 +29,7 @@
 		F51FFFB125445BBA0039D713 /* PCH_Rabin2020_Preferences.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PCH_Rabin2020_Preferences.swift; sourceTree = "<group>"; };
 		F551CF76253C999B00683E03 /* MatrixDisplay.xib */ = {isa = PBXFileReference; lastKnownFileType = file.xib; path = MatrixDisplay.xib; sourceTree = "<group>"; };
 		F558CE942534D5EA0049A68B /* Core.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Core.swift; sourceTree = "<group>"; };
+		F5C8731B2547359A002E0440 /* PCH_ExcelDesignFileReader.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = PCH_ExcelDesignFileReader.swift; path = "../../../../Dropbox/MyProjects/Base Classes/PCH_ExcelDesignFileReader.swift"; sourceTree = "<group>"; };
 		F5E6BA0725332B0600F522C6 /* RabinInductance2020.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = RabinInductance2020.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		F5E6BA0A25332B0600F522C6 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		F5E6BA0C25332B0700F522C6 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -80,6 +82,7 @@
 				F5E6BA2F2533324100F522C6 /* GlobalDefs.swift */,
 				F5E6BA302533324100F522C6 /* PCH_Defs.swift */,
 				F5E6BA2325332C3300F522C6 /* AppController.swift */,
+				F5C8731B2547359A002E0440 /* PCH_ExcelDesignFileReader.swift */,
 				F51FFFB125445BBA0039D713 /* PCH_Rabin2020_Preferences.swift */,
 				F507F20D253B81E3005D02E4 /* Matrix.swift */,
 				F551CF76253C999B00683E03 /* MatrixDisplay.xib */,
@@ -184,6 +187,7 @@
 				F5E6BA2425332C3300F522C6 /* AppController.swift in Sources */,
 				F5E6BA312533324100F522C6 /* GlobalDefs.swift in Sources */,
 				F558CE952534D5EA0049A68B /* Core.swift in Sources */,
+				F5C8731C2547359A002E0440 /* PCH_ExcelDesignFileReader.swift in Sources */,
 				F5E6BA2725332D5300F522C6 /* Phase.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
