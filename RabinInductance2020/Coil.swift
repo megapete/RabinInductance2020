@@ -282,8 +282,13 @@ class Coil:Codable, Equatable {
         }
     }
     
-    convenience init(winding:PCH_ExcelDesignFile.Winding)
+    convenience init(winding:PCH_ExcelDesignFile.Winding, core:Core)
     {
+        let coilID = winding.position
+        let coilName = "Coil \(winding.position + 1)"
+        let innerRadius = winding.innerDiameter / 2
+        let outerRadius = innerRadius + winding.electricalRadialBuild
+        
         
     }
     
