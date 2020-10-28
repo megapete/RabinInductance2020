@@ -219,7 +219,7 @@ class AppController: NSObject {
     @IBAction func handleTest5(_ sender: Any) {
         
         let core = Core(realWindowHt: 1.26, radius: 0.483 / 2)
-        let zOffset = 3.5 * meterPerInch // (Core.windowHtMultiplier - 1.0) / 2 * core.realWindowHt
+        let zOffset = 0 * meterPerInch // (Core.windowHtMultiplier - 1.0) / 2 * core.realWindowHt
 
         // we're tripling the window height, so we'll just add one window height to the z-dims of the coils
         let fullInnerSection = Section(sectionID: Section.nextSerialNumber, zMin: zOffset + 3.5 * meterPerInch, zMax: zOffset + (3.5 + 41.025) * meterPerInch, N: 64, inNode: 0, outNode: 0)

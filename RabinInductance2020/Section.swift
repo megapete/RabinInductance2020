@@ -108,11 +108,12 @@ class Section:Codable {
             let J_M_NI_exp = log(fabs(Jn)) * 2 + log(m) * -4 + log(N * I) * -2
             let J_M_NI_scaled = Coil.ScaledReturnType(terms: [Coil.ScaledReturnType.Term(scale: J_M_NI_exp, scaledValue: 1.0)])
             
-            let firstProduct = J_M_NI_scaled * (coil.En[1][i] * coil.Integral_I1n[1][i])
-            let secondProduct = J_M_NI_scaled * (coil.Fn[1][i] * coil.Cn[1][i])
-            let thirdProduct = (π / 2) * (J_M_NI_scaled * coil.Integral_L1n[1][i])
+            let firstProduct = (J_M_NI_scaled * (coil.En[1][i] * coil.Integral_I1n[1][i]))
+            let secondProduct = (J_M_NI_scaled * (coil.Fn[1][i] * coil.Cn[1][i]))
+            let thirdProduct = ((π / 2) * (J_M_NI_scaled * coil.Integral_L1n[1][i]))
             
             let scaledSum = firstProduct + secondProduct - thirdProduct
+            
             let checkSum1 = scaledSum.totalTrueValue
             // let checkSum2 = firstProduct.totalTrueValue + secondProduct.totalTrueValue - thirdProduct.totalTrueValue
             
@@ -197,11 +198,12 @@ class Section:Codable {
             
             if isSameRadialPosition
             {
-                let firstProduct = J_M_NI_scaled * (coils[0].En[1][i] * coils[0].Integral_I1n[1][i])
-                let secondProduct = J_M_NI_scaled * (coils[0].Fn[1][i] * coils[0].Cn[1][i])
-                let thirdProduct = (π / 2) * (J_M_NI_scaled * coils[0].Integral_L1n[1][i])
+                let firstProduct = (J_M_NI_scaled * (coils[0].En[1][i] * coils[0].Integral_I1n[1][i]))
+                let secondProduct = (J_M_NI_scaled * (coils[0].Fn[1][i] * coils[0].Cn[1][i]))
+                let thirdProduct = ((π / 2) * (J_M_NI_scaled * coils[0].Integral_L1n[1][i]))
                 
                 let scaledSum = firstProduct + secondProduct - thirdProduct
+                
                 let checkSum1 = scaledSum.totalTrueValue
                 
                 sumQueue.sync {
@@ -210,10 +212,16 @@ class Section:Codable {
             }
             else
             {
-                let firstProduct = J_M_NI_scaled * coils[1].Cn[1][i] * coils[0].Integral_I1n[1][i]
-                let secondProduct = J_M_NI_scaled * coils[1].Dn[1][i] * coils[0].Cn[1][i]
+                let firstProduct = (J_M_NI_scaled * coils[1].Cn[1][i] * coils[0].Integral_I1n[1][i])
+                let secondProduct = (J_M_NI_scaled * coils[1].Dn[1][i] * coils[0].Cn[1][i])
                 
                 let scaledSum = firstProduct + secondProduct
+                
+                if n == 100
+                {
+                    print("firstProduct: \(firstProduct)\nsecondProduct: \(secondProduct)\nsum: \(scaledSum)\n")
+                }
+                
                 let checkSum1 = scaledSum.totalTrueValue
                 
                 sumQueue.sync {

@@ -194,6 +194,28 @@ class Coil:Codable, Equatable {
             return ScaledReturnType(terms: newTerms)
         }
         
+        /// Return a new ScaledReturnType that is made up of a single term
+        func reduced() -> ScaledReturnType
+        {
+            var sortedTerms = self.terms.sorted(by: {$0.scale > $1.scale})
+            
+            while sortedTerms.count > 1
+            {
+                let term1 = sortedTerms.removeFirst()
+                let term2 = sortedTerms.removeFirst()
+                
+                let newScale = term1.scale
+                let term2Scale = term2.scale - newScale
+                let newValue = term1.scaledValue + exp(term2Scale) * term2.scaledValue
+                
+                sortedTerms.append(ScaledReturnType.Term(scale: newScale, scaledValue: newValue))
+                
+                sortedTerms.sort(by: {$0.scale > $1.scale})
+            }
+            
+            return ScaledReturnType(terms: sortedTerms)
+        }
+        
         init(terms:[Term])
         {
             self.terms = terms
@@ -256,18 +278,21 @@ class Coil:Codable, Equatable {
                 }
                 
                 let newCn = Coil.IntegralOf_tK1_t_dt(from: x1, to: x2)
+                // print("before reduction: \(newCn.totalTrueValue)")
+                // let reducedCn = newCn.reduced()
+                // print("after reduction: \(reducedCn.totalTrueValue)")
                 self.Cn[index].append(newCn)
                 
                 let i0k0_scaled = gsl_sf_bessel_I0_scaled(xc) / gsl_sf_bessel_K0_scaled(xc)
                 let i0k0 = ScaledReturnType(terms: [ScaledReturnType.Term(scale: 2 * xc, scaledValue: i0k0_scaled)])
                 
-                let newDn = i0k0 * newCn
+                let newDn = (i0k0 * newCn).reduced()
                 self.Dn[index].append(newDn)
                 
-                let newFn = newDn - Coil.IntegralOf_tI1_t_dt(from: 0, to: x1)
+                let newFn = (newDn - Coil.IntegralOf_tI1_t_dt(from: 0, to: x1))
                 self.Fn[index].append(newFn)
                 
-                let newGn = newDn + Coil.IntegralOf_tI1_t_dt(from: x1, to: x2)
+                let newGn = (newDn + Coil.IntegralOf_tI1_t_dt(from: x1, to: x2))
                 self.Gn[index].append(newGn)
                 
                 let newEn = Coil.IntegralOf_tK1_t_dt(from: 0, to: x2)
@@ -289,7 +314,7 @@ class Coil:Codable, Equatable {
         let innerRadius = winding.innerDiameter / 2
         let outerRadius = innerRadius + winding.electricalRadialBuild
         
-        
+        self.init(coilID:coilID, name:coilName, currentDirection:-1, innerRadius:innerRadius, outerRadius:outerRadius, I:10.0, core:core)
     }
     
     /// Return the vector potential at the point passed to the routine
@@ -524,7 +549,7 @@ class Coil:Codable, Equatable {
     /// DelVecchio 3e, Eq. 9.61(b)
     static func IntegralOf_tK1_t_dt(from x1:Double, to x2:Double) -> ScaledReturnType
     {
-        // Return the scaled terms from the calculation of the integral. Note that it is the calling routine's responsibility to multiply each term by e^-xi, then ADD the two terms upon return. Note that the function has been set up so that this will even work if x1=0
+        // Return the scaled terms from the calculation of the integral.  Note that the function has been set up so that this will even work if x1=0
         
         let x1TermValue = x1 == 0 ? π / 2.0 :  π / 2.0 * x1 * (Coil.M1(x: x1) * gsl_sf_bessel_K0_scaled(x1) + Coil.M0(x: x1) * gsl_sf_bessel_K1_scaled(x1))
         let x2TermValue = -π / 2.0 * x2 * (Coil.M1(x: x2) * gsl_sf_bessel_K0_scaled(x2) + Coil.M0(x: x2) * gsl_sf_bessel_K1_scaled(x2))
