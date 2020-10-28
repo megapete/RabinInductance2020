@@ -26,7 +26,8 @@ class Coil:Codable, Equatable {
         case III
     }
     
-    
+    /// If the Coil was created using an Excel-gernerated design file, this will hold a copy of the WInding
+    let xlWinding:PCH_ExcelDesignFile.Winding?
     
     struct BField:Codable {
         
@@ -245,7 +246,7 @@ class Coil:Codable, Equatable {
     
     let core:Core
     
-    init(coilID:Int, name:String, currentDirection:Int, innerRadius:Double, outerRadius:Double, I:Double, sections:[Section] = [], core:Core) {
+    init(coilID:Int, name:String, currentDirection:Int, innerRadius:Double, outerRadius:Double, I:Double, sections:[Section] = [], core:Core, xlWinding:PCH_ExcelDesignFile.Winding? = nil) {
         
         self.coilID = coilID
         self.name = name
@@ -255,6 +256,7 @@ class Coil:Codable, Equatable {
         self.I = I
         self.sections = sections.sorted(by: {$0.zMin < $1.zMin})
         self.core = core
+        self.xlWinding = xlWinding
         
         for index in 0..<3
         {
@@ -314,7 +316,17 @@ class Coil:Codable, Equatable {
         let innerRadius = winding.innerDiameter / 2
         let outerRadius = innerRadius + winding.electricalRadialBuild
         
-        self.init(coilID:coilID, name:coilName, currentDirection:-1, innerRadius:innerRadius, outerRadius:outerRadius, I:10.0, core:core)
+        let numMainAxialSections = 1 + winding.centerGap > 0 ? 1 : 0 + winding.topDvGap > 0 ? 1 : 0 + winding.bottomDvGap > 0 ? 1 : 0
+        
+        if winding.windingType == .disc
+        {
+            let turnsPerDisc = winding.numTurns.max / Double(winding.numAxialSections)
+            let numInterdisks = winding.numAxialSections - numMainAxialSections
+            let totalAxialInsulation = (Double(numInterdisks) * winding.stdAxialGap + winding.centerGap + winding.topDvGap + winding.bottomDvGap) * 0.98
+            let discAxialDimension = (winding.electricalHeight - totalAxialInsulation) / Double(winding.numAxialSections)
+        }
+        
+        self.init(coilID:coilID, name:coilName, currentDirection:-1, innerRadius:innerRadius, outerRadius:outerRadius, I:10.0, core:core, xlWinding:winding)
     }
     
     /// Return the vector potential at the point passed to the routine

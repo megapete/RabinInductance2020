@@ -13,6 +13,8 @@ class Phase:Codable {
     
     let coils:[Coil]
     
+    var xlDesignFile:PCH_ExcelDesignFile? = nil
+    
     init(core:Core, coils:[Coil]) {
         
         self.core = core
