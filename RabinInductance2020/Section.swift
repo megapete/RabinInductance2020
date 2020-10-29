@@ -113,8 +113,7 @@ class Section:Codable {
             
             let scaledSum = firstProduct + secondProduct - thirdProduct
             
-            let checkSum1 = scaledSum.totalTrueValue
-            // let checkSum2 = firstProduct.totalTrueValue + secondProduct.totalTrueValue - thirdProduct.totalTrueValue
+            let checkSum1 = scaledSum.doubleValue
             
             sumQueue.sync {
                 sum += checkSum1
@@ -191,7 +190,7 @@ class Section:Codable {
                 
                 let scaledSum = firstProduct + secondProduct - thirdProduct
                 
-                let checkSum1 = scaledSum.totalTrueValue
+                let checkSum1 = scaledSum.doubleValue
                 
                 sumQueue.sync {
                     sum += checkSum1
@@ -203,7 +202,7 @@ class Section:Codable {
                 let secondProduct = (J_M_NI_scaled * coils[1].Dn[1][i] * coils[0].Cn[1][i])
                 
                 let scaledSum = firstProduct + secondProduct
-                let checkSum1 = scaledSum.totalTrueValue
+                let checkSum1 = scaledSum.doubleValue
                 
                 sumQueue.sync {
                     sum += checkSum1

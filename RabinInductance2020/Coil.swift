@@ -127,6 +127,58 @@ class Coil:Codable, Equatable {
         
         let terms:[Term]
         
+        /// Better (I think) method of getting the Double value of a ScaledReturnType
+        var doubleValue:Double {
+            get {
+                
+                var resultTerms = self.terms.sorted(by: {$0.scale > $1.scale})
+                
+                while resultTerms.count > 1
+                {
+                    let firstTerm = resultTerms.removeFirst()
+                    if firstTerm.scaledValue == 0
+                    {
+                        continue
+                    }
+                    let secondTerm = resultTerms.removeFirst()
+                    if secondTerm.scaledValue == 0
+                    {
+                        resultTerms.insert(firstTerm, at: 0)
+                        continue
+                    }
+                    
+                    // print("First: \(firstTerm)")
+                    // print("Second: \(secondTerm)")
+                    let b = secondTerm.scale
+                    let newValue = exp(firstTerm.scale - b) * firstTerm.scaledValue + secondTerm.scaledValue
+                    
+                    if newValue == 0
+                    {
+                        continue
+                    }
+                    
+                    let sValue = newValue < 0 ? -1.0 : 1.0
+                    let newTerm = Term(scale: b + log(fabs(newValue)), scaledValue: sValue)
+                    // print("New: \(newTerm)")
+                    
+                    resultTerms.append(newTerm)
+                    resultTerms.sort(by: {$0.scale > $1.scale})
+                }
+                
+                if resultTerms.count == 0
+                {
+                    return 0.0
+                }
+                
+                let result = exp(resultTerms[0].scale) * resultTerms[0].scaledValue
+                
+                assert(!result.isNaN, "Got a NaN!")
+                
+                return result
+            }
+        }
+        
+        /// Easy, but (I think), less precise way of getting the Double value of the ScaledReturnType
         var totalTrueValue:Double {
             get {
                 
@@ -298,10 +350,11 @@ class Coil:Codable, Equatable {
                 let i0k0_scaled = gsl_sf_bessel_I0_scaled(xc) / gsl_sf_bessel_K0_scaled(xc)
                 let i0k0 = ScaledReturnType(terms: [ScaledReturnType.Term(scale: 2 * xc, scaledValue: i0k0_scaled)])
                 
-                let newDn = (i0k0 * newCn).reduced()
+                let newDn = (i0k0 * newCn)
                 self.Dn[index].append(newDn)
                 
                 let newFn = (newDn - Coil.IntegralOf_tI1_t_dt(from: 0, to: x1))
+                // print("Old way: \(newFn.totalTrueValue), New way: \(newFn.tuned_totalTrueValue)")
                 self.Fn[index].append(newFn)
                 
                 let newGn = (newDn + Coil.IntegralOf_tI1_t_dt(from: x1, to: x2))
