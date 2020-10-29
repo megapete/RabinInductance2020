@@ -102,7 +102,6 @@ class Section:Codable {
             let m = Double(n) * π / L
             
             let Jn = self.Jn(n: n, J: J, L: L)
-            // let Jn = coil.J[n]
             
             // I was wondering why DelVecchio 3e, Eq. 9.98 was multiplying the second term by N^2/N^2 and I think that the reason is to stabilize the numbers in the sum.
             let J_M_NI_exp = log(fabs(Jn)) * 2 + log(m) * -4 + log(N * I) * -2
@@ -128,7 +127,7 @@ class Section:Codable {
         
         result += multiplier * sum
         
-        // print("Result: \(result)")
+        assert(!result.isNaN, "NaN discovered!")
         
         return result
     }
@@ -141,18 +140,6 @@ class Section:Codable {
             ALog("Parent coil has not been set for one of the sections!")
             return -Double.greatestFiniteMagnitude
         }
-        
-        /* unneeded
-        if selfCoil.J.count == 0
-        {
-            selfCoil.InitializeJ()
-        }
-        
-        if otherCoil.J.count == 0
-        {
-            otherCoil.InitializeJ()
-        }
-        */
         
         let coils:[Coil] = [selfCoil, otherCoil].sorted(by: {$0.innerRadius <= $1.innerRadius})
         let isSameRadialPosition = selfCoil.innerRadius == otherCoil.innerRadius
@@ -216,12 +203,6 @@ class Section:Codable {
                 let secondProduct = (J_M_NI_scaled * coils[1].Dn[1][i] * coils[0].Cn[1][i])
                 
                 let scaledSum = firstProduct + secondProduct
-                
-                if n == 100
-                {
-                    print("firstProduct: \(firstProduct)\nsecondProduct: \(secondProduct)\nsum: \(scaledSum)\n")
-                }
-                
                 let checkSum1 = scaledSum.totalTrueValue
                 
                 sumQueue.sync {
@@ -233,6 +214,8 @@ class Section:Codable {
         let multiplier = π * µ0 * L * N1 * N2
         
         result += multiplier * sum
+        
+        assert(!result.isNaN, "NaN discovered!")
         
         return result
     }

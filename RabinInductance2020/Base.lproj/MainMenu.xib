@@ -647,6 +647,25 @@
                         </items>
                     </menu>
                 </menuItem>
+                <menuItem title="Inductance" id="QU9-DG-WIJ">
+                    <modifierMask key="keyEquivalentModifierMask"/>
+                    <menu key="submenu" title="Inductance" id="S5n-Jk-7HS">
+                        <items>
+                            <menuItem title="Create matrix" id="O9c-9d-WTC">
+                                <modifierMask key="keyEquivalentModifierMask"/>
+                                <connections>
+                                    <action selector="handleCreateMatrix:" target="II9-PS-IqR" id="Cui-d5-Rg4"/>
+                                </connections>
+                            </menuItem>
+                            <menuItem title="Calculate Reactance" id="IXQ-5t-ctE">
+                                <modifierMask key="keyEquivalentModifierMask"/>
+                                <connections>
+                                    <action selector="handleCalculateReactance:" target="II9-PS-IqR" id="CHd-bd-zo5"/>
+                                </connections>
+                            </menuItem>
+                        </items>
+                    </menu>
+                </menuItem>
                 <menuItem title="Test" id="b9a-cR-qQC">
                     <modifierMask key="keyEquivalentModifierMask"/>
                     <menu key="submenu" title="Test" id="bae-tv-dOs">
@@ -734,7 +753,7 @@
             <windowStyleMask key="styleMask" titled="YES" closable="YES" miniaturizable="YES" resizable="YES"/>
             <windowPositionMask key="initialPositionMask" leftStrut="YES" rightStrut="YES" topStrut="YES" bottomStrut="YES"/>
             <rect key="contentRect" x="335" y="390" width="480" height="360"/>
-            <rect key="screenRect" x="0.0" y="0.0" width="1680" height="1027"/>
+            <rect key="screenRect" x="0.0" y="0.0" width="2560" height="1417"/>
             <view key="contentView" id="EiT-Mj-1SZ">
                 <rect key="frame" x="0.0" y="0.0" width="480" height="360"/>
                 <autoresizingMask key="autoresizingMask"/>

@@ -246,14 +246,24 @@ class Coil:Codable, Equatable {
     
     let core:Core
     
+    /// Designated initializer for the Coil class.
+    /// - Parameter coilID: A unique identifier (in terms of the phase) for the coil. Usually the "position" of the coil (0 = closest to the core, etc.)
+    /// - Parameter name: A String that can be used to easily identify the coil
+    /// - Parameter currentDirection: the azimuthal direction of the current (clamped to one of the following values: -1, 0, 1)
+    /// - Parameter innerRadius: The inner radius of the coil in meters
+    /// - Parameter outerRadius: The outer radius of the coil in meters
+    /// - Parameter I: The current (in positive Amps) in the coil
+    /// - Parameter sections: An array of Sections used to model the coil
+    /// - Parameter core: The Core to be used for inductance calculations
+    /// - Parameter xlWinding: A reference to the original Excel-generated winding data for the coil, if any - otherwise 'nil'
     init(coilID:Int, name:String, currentDirection:Int, innerRadius:Double, outerRadius:Double, I:Double, sections:[Section] = [], core:Core, xlWinding:PCH_ExcelDesignFile.Winding? = nil) {
         
         self.coilID = coilID
         self.name = name
-        self.currentDirection = currentDirection
+        self.currentDirection = currentDirection == 0 ? 0 : currentDirection < 0 ? -1 : 1
         self.innerRadius = innerRadius
         self.outerRadius = outerRadius
-        self.I = I
+        self.I = fabs(I)
         self.sections = sections.sorted(by: {$0.zMin < $1.zMin})
         self.core = core
         self.xlWinding = xlWinding
@@ -307,26 +317,153 @@ class Coil:Codable, Equatable {
                 self.Integral_L1n[index].append(newL1n)
             }
         }
+        
+        for nextSection in self.sections
+        {
+            nextSection.parent = self
+        }
     }
     
-    convenience init(winding:PCH_ExcelDesignFile.Winding, core:Core)
+    /// Convenience initializer for the Coil class to return a Coil based on the data from an Excel-generated design file.
+    /// - Parameter winding: The PCH_ExcelDesignFile.Winding from which the Coil will be modeled
+    /// - Parameter core: The Core for the phase
+    /// - Parameter detailedModel: If 'true', all sections (discs) and/or layers are modeled. Otherwise, only the "major" sections are modeled (see Discussion).
+    ///
+    /// 'Major' sections are defined as axial sections that only break at the center-gap and DV gaps (if any). Axial interdisc and radial cooling ducts are ignored.
+    convenience init(winding:PCH_ExcelDesignFile.Winding, core:Core, detailedModel:Bool = false)
     {
         let coilID = winding.position
         let coilName = "Coil \(winding.position + 1)"
         let innerRadius = winding.innerDiameter / 2
         let outerRadius = innerRadius + winding.electricalRadialBuild
+        let currentDirection = winding.terminal.currentDirection
         
         let numMainAxialSections = 1 + winding.centerGap > 0 ? 1 : 0 + winding.topDvGap > 0 ? 1 : 0 + winding.bottomDvGap > 0 ? 1 : 0
+        var sections:[Section] = []
         
-        if winding.windingType == .disc
+        if detailedModel
         {
-            let turnsPerDisc = winding.numTurns.max / Double(winding.numAxialSections)
-            let numInterdisks = winding.numAxialSections - numMainAxialSections
-            let totalAxialInsulation = (Double(numInterdisks) * winding.stdAxialGap + winding.centerGap + winding.topDvGap + winding.bottomDvGap) * 0.98
-            let discAxialDimension = (winding.electricalHeight - totalAxialInsulation) / Double(winding.numAxialSections)
+            if winding.windingType == .disc || winding.windingType == .helix
+            {
+                let useAxialSections = winding.windingType == .disc ? winding.numAxialSections : Int(winding.numTurns.max)
+                let turnsPerDisc = winding.numTurns.max / Double(useAxialSections)
+                let numInterdisks = useAxialSections - numMainAxialSections
+                let totalAxialInsulation = (Double(numInterdisks) * winding.stdAxialGap + winding.centerGap + winding.topDvGap + winding.bottomDvGap) * 0.98
+                var gaps:[Double] = [0.0]
+                let discAxialDimension = (winding.electricalHeight - totalAxialInsulation) / Double(useAxialSections)
+                
+                var mainSectionDiscs:[Int] = []
+                if numMainAxialSections == 1
+                {
+                    mainSectionDiscs = [useAxialSections]
+                }
+                else if numMainAxialSections == 2
+                {
+                    let bottomDiscCount = Int(ceil(Double(useAxialSections / 2)))
+                    mainSectionDiscs.append(bottomDiscCount)
+                    mainSectionDiscs.append(useAxialSections - bottomDiscCount)
+                    gaps = [winding.centerGap]
+                }
+                else if numMainAxialSections == 3
+                {
+                    let upperAndLowerSectionDiscCount = Int(ceil(Double(useAxialSections) / 4))
+                    let centerSectionDiscCount = useAxialSections - 2 * upperAndLowerSectionDiscCount
+                    mainSectionDiscs = [upperAndLowerSectionDiscCount, centerSectionDiscCount, upperAndLowerSectionDiscCount]
+                    gaps = [winding.bottomDvGap, winding.topDvGap]
+                }
+                else // 4 sections
+                {
+                    let bottomHalfDiscCount = Int(ceil(Double(useAxialSections / 2)))
+                    let topHalfDiscCount = useAxialSections - bottomHalfDiscCount
+                    let bottompQuarterDiscCount = Int(ceil(Double(bottomHalfDiscCount / 2)))
+                    let centerBottomQuarterDiscCount = bottomHalfDiscCount - bottompQuarterDiscCount
+                    let topQuarterDiscCount = bottompQuarterDiscCount
+                    let centerTopQuarterDiscCount = topHalfDiscCount - topQuarterDiscCount
+                    
+                    mainSectionDiscs = [bottompQuarterDiscCount, centerBottomQuarterDiscCount, centerTopQuarterDiscCount, topQuarterDiscCount]
+                    
+                    gaps = [winding.bottomDvGap, winding.centerGap, winding.topDvGap]
+                }
+                
+                var currentMinZ = winding.bottomEdgePack
+                
+                for nextMainSection in mainSectionDiscs
+                {
+                    for _ in 0..<nextMainSection
+                    {
+                        let newSection = Section(sectionID: Section.nextSerialNumber, zMin: currentMinZ, zMax: currentMinZ + discAxialDimension, N: turnsPerDisc, inNode: 0, outNode: 0)
+                        
+                        sections.append(newSection)
+                        
+                        currentMinZ += discAxialDimension + winding.stdAxialGap * 0.98
+                    }
+                    
+                    currentMinZ += (gaps.removeFirst() - winding.stdAxialGap) * 0.98
+                }
+            }
+        }
+        else // non-detailed model
+        {
+            if winding.windingType == .disc || winding.windingType == .helix
+            {
+                let useAxialSections = winding.windingType == .disc ? winding.numAxialSections : Int(winding.numTurns.max)
+                // let turnsPerDisc = winding.numTurns.max / Double(useAxialSections)
+                // let numInterdisks = useAxialSections - numMainAxialSections
+                let totalAxialInsulation = (winding.stdAxialGap + winding.centerGap + winding.topDvGap + winding.bottomDvGap) * 0.98
+                var gaps:[Double] = [0.0]
+                let totalAxialCopperDimension = winding.electricalHeight - totalAxialInsulation
+                
+                var mainSectionDiscs:[Int] = []
+                if numMainAxialSections == 1
+                {
+                    mainSectionDiscs = [useAxialSections]
+                }
+                else if numMainAxialSections == 2
+                {
+                    let bottomDiscCount = Int(ceil(Double(useAxialSections / 2)))
+                    mainSectionDiscs.append(bottomDiscCount)
+                    mainSectionDiscs.append(useAxialSections - bottomDiscCount)
+                    gaps = [winding.centerGap, 0.0]
+                }
+                else if numMainAxialSections == 3
+                {
+                    let upperAndLowerSectionDiscCount = Int(ceil(Double(useAxialSections) / 4))
+                    let centerSectionDiscCount = useAxialSections - 2 * upperAndLowerSectionDiscCount
+                    mainSectionDiscs = [upperAndLowerSectionDiscCount, centerSectionDiscCount, upperAndLowerSectionDiscCount]
+                    gaps = [winding.bottomDvGap, winding.topDvGap, 0.0]
+                }
+                else // 4 sections
+                {
+                    let bottomHalfDiscCount = Int(ceil(Double(useAxialSections / 2)))
+                    let topHalfDiscCount = useAxialSections - bottomHalfDiscCount
+                    let bottompQuarterDiscCount = Int(ceil(Double(bottomHalfDiscCount / 2)))
+                    let centerBottomQuarterDiscCount = bottomHalfDiscCount - bottompQuarterDiscCount
+                    let topQuarterDiscCount = bottompQuarterDiscCount
+                    let centerTopQuarterDiscCount = topHalfDiscCount - topQuarterDiscCount
+                    
+                    mainSectionDiscs = [bottompQuarterDiscCount, centerBottomQuarterDiscCount, centerTopQuarterDiscCount, topQuarterDiscCount]
+                    
+                    gaps = [winding.bottomDvGap, winding.centerGap, winding.topDvGap, 0.0]
+                }
+                
+                var currentMinZ = winding.bottomEdgePack
+                
+                for nextMainSection in mainSectionDiscs
+                {
+                    let sectionFraction = Double(nextMainSection) / Double(useAxialSections)
+                    let turns = sectionFraction * winding.numTurns.max
+                    let sectionHeight = sectionFraction * totalAxialCopperDimension
+                    
+                    let newSection = Section(sectionID: Section.nextSerialNumber, zMin: currentMinZ, zMax: currentMinZ + sectionHeight, N: turns, inNode: 0, outNode: 0)
+                    
+                    sections.append(newSection)
+                    
+                    currentMinZ += sectionHeight + gaps.removeFirst() * 0.98
+                }
+            }
         }
         
-        self.init(coilID:coilID, name:coilName, currentDirection:-1, innerRadius:innerRadius, outerRadius:outerRadius, I:10.0, core:core, xlWinding:winding)
+        self.init(coilID:coilID, name:coilName, currentDirection:currentDirection, innerRadius:innerRadius, outerRadius:outerRadius, I:winding.I, sections:sections, core:core, xlWinding:winding)
     }
     
     /// Return the vector potential at the point passed to the routine

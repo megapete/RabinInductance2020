@@ -83,6 +83,33 @@ class AppController: NSObject {
         }
     }
     
+    @IBAction func handleCalculateReactance(_ sender: Any) {
+        
+        guard let phase = self.currentPhase else
+        {
+            return
+        }
+        
+        let reactance = phase.LeakageReactancePU(baseVA: phase.coils[0].xlWinding!.terminal.kVA / 3 * 1000.0, baseI: phase.coils[0].I)
+        
+        print("Reactance: \(reactance)")
+    }
+    
+    @IBAction func handleCreateMatrix(_ sender: Any) {
+        
+        guard let phase = self.currentPhase else
+        {
+            return
+        }
+        
+        let indMatrix = phase.InductanceMatrix()
+        
+        print("Matrix is positive definite: \(indMatrix.TestPositiveDefinite())")
+        
+        // let _ = MatrixDisplay(windowTitle: "Matrix", matrix: indMatrix)
+    }
+    
+    
     @IBAction func handleTest1(_ sender: Any) {
         
         let core = Core(realWindowHt: 0.680, radius: 0.295 / 2)

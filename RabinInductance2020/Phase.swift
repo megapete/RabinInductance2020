@@ -23,12 +23,12 @@ class Phase:Codable {
     
     convenience init(xlDesign:PCH_ExcelDesignFile) {
         
-        let core = Core(realWindowHt: xlDesign.core.windowHeight, radius: xlDesign.core.diameter / 2)
+        let core = Core(realWindowHt: xlDesign.core.windowHeight, radius: xlDesign.core.diameter / 2, windowMultiplier: 1.5)
         
         var coils:[Coil] = []
         for nextWinding in xlDesign.windings
         {
-            coils.append(Coil(winding: nextWinding, core: core))
+            coils.append(Coil(winding: nextWinding, core: core, detailedModel: true))
         }
         
         self.init(core:core, coils:coils)
@@ -100,12 +100,22 @@ class Phase:Codable {
             let nextSection = allSections.removeFirst()
             let nextParent = nextSection.parent!
             
+            if nextParent.currentDirection == 0
+            {
+                continue
+            }
+            
             // DLog("Calculating inductances for section: \(nextSection.sectionID)")
             sumLI += nextSection.SelfInductance() * nextParent.I * nextParent.I
             
             for otherSection in allSections
             {
                 let otherParent = otherSection.parent!
+                
+                if otherParent.currentDirection == 0
+                {
+                    continue
+                }
                 
                 let sign = nextParent.currentDirection == otherParent.currentDirection ? 1.0 : -1.0
                 
