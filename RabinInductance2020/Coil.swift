@@ -26,46 +26,10 @@ class Coil:Codable, Equatable {
         case III
     }
     
-    /// If the Coil was created using an Excel-gernerated design file, this will hold a copy of the WInding
+    /// If the Coil was created using an Excel-gernerated design file, this will hold a copy of the Winding
     let xlWinding:PCH_ExcelDesignFile.Winding?
     
-    struct BField:Codable {
-        
-        let region:Region
-        let radial:Double = 0.0
-        let axial:Double = 0.0
-        
-        init(at point:NSPoint, for coil:Coil)
-        {
-            let r = Double(point.x)
-            let z = Double(point.y)
-            
-            if r < coil.innerRadius
-            {
-                self.region = .I
-            }
-            else if r <= coil.outerRadius
-            {
-                self.region = .II
-            }
-            else
-            {
-                self.region = .III
-            }
-            
-            var radialSum = 0.0
-            var axialSum = 0.0
-            
-            if self.region == .I
-            {
-                for n in 1...convergenceIterations
-                {
-                    let m = Double(n) * π / coil.core.useWindowHt
-                    let x = m * r
-                }
-            }
-        }
-    }
+    
     
     let coilID:Int
     let name:String
@@ -125,9 +89,9 @@ class Coil:Codable, Equatable {
             }
         }
         
-        let terms:[Term]
+        var terms:[Term]
         
-        /// Better (I think) method of getting the Double value of a ScaledReturnType
+        /// Better (I think) method of getting the Double value of a ScaledReturnType. The idea is to sort the terms so that the highest scales are at the beginning of the array, the remove the first pair of terms and add them together to from a new term. This new term is the appended to the array, which is resorted and the whole thing goes on until there is only one term left, which is then converted to a double. I'm hoping that this method will keep large values (in the terms array) from swamping smaller ones.
         var doubleValue:Double {
             get {
                 
@@ -178,7 +142,7 @@ class Coil:Codable, Equatable {
             }
         }
         
-        /// Easy, but (I think), less precise way of getting the Double value of the ScaledReturnType
+        /// Easy, but (I think), less precise way of getting the Double value of the ScaledReturnType (As compared to "doubleValue".
         var totalTrueValue:Double {
             get {
                 
@@ -201,6 +165,11 @@ class Coil:Codable, Equatable {
             newTerms.append(contentsOf: rhs.terms)
             
             return ScaledReturnType(terms: newTerms)
+        }
+        
+        static func += (lhs:inout ScaledReturnType, rhs:ScaledReturnType)
+        {
+            lhs.terms.append(contentsOf: rhs.terms)
         }
         
         static func - (lhs:ScaledReturnType, rhs:ScaledReturnType) -> ScaledReturnType
@@ -247,26 +216,46 @@ class Coil:Codable, Equatable {
             return ScaledReturnType(terms: newTerms)
         }
         
-        /// Return a new ScaledReturnType that is made up of a single term
+        /// Return a new ScaledReturnType that is made up of a single term. This uses the same logic as the "doubleValue" computed property.
         func reduced() -> ScaledReturnType
         {
-            var sortedTerms = self.terms.sorted(by: {$0.scale > $1.scale})
+            var resultTerms = self.terms.sorted(by: {$0.scale > $1.scale})
             
-            while sortedTerms.count > 1
+            while resultTerms.count > 1
             {
-                let term1 = sortedTerms.removeFirst()
-                let term2 = sortedTerms.removeFirst()
+                let firstTerm = resultTerms.removeFirst()
+                if firstTerm.scaledValue == 0
+                {
+                    continue
+                }
+                let secondTerm = resultTerms.removeFirst()
+                if secondTerm.scaledValue == 0
+                {
+                    resultTerms.insert(firstTerm, at: 0)
+                    continue
+                }
                 
-                let newScale = term1.scale
-                let term2Scale = term2.scale - newScale
-                let newValue = term1.scaledValue + exp(term2Scale) * term2.scaledValue
+                let b = secondTerm.scale
+                let newValue = exp(firstTerm.scale - b) * firstTerm.scaledValue + secondTerm.scaledValue
                 
-                sortedTerms.append(ScaledReturnType.Term(scale: newScale, scaledValue: newValue))
+                if newValue == 0
+                {
+                    continue
+                }
                 
-                sortedTerms.sort(by: {$0.scale > $1.scale})
+                let sValue = newValue < 0 ? -1.0 : 1.0
+                let newTerm = Term(scale: b + log(fabs(newValue)), scaledValue: sValue)
+                
+                resultTerms.append(newTerm)
+                resultTerms.sort(by: {$0.scale > $1.scale})
             }
             
-            return ScaledReturnType(terms: sortedTerms)
+            if resultTerms.count == 0
+            {
+                return ScaledReturnType(number: 0.0)
+            }
+            
+            return ScaledReturnType(terms: resultTerms)
         }
         
         init(terms:[Term])
@@ -276,8 +265,21 @@ class Coil:Codable, Equatable {
         
         init(number:Double)
         {
-            let numTerm = Term(scale: log(number), scaledValue: 1.0)
-            self.terms = [numTerm]
+            if number == 0.0
+            {
+                let numTerm = Term(scale: 0.0, scaledValue: 0.0)
+                self.terms = [numTerm]
+            }
+            else
+            {
+                let numTerm = Term(scale: log(number), scaledValue: 1.0)
+                self.terms = [numTerm]
+            }
+        }
+        
+        init(scale:Double, value:Double)
+        {
+            self.terms = [ScaledReturnType.Term(scale: scale, scaledValue: value)]
         }
     }
     
@@ -348,7 +350,8 @@ class Coil:Codable, Equatable {
                 self.Cn[index].append(newCn)
                 
                 let i0k0_scaled = gsl_sf_bessel_I0_scaled(xc) / gsl_sf_bessel_K0_scaled(xc)
-                let i0k0 = ScaledReturnType(terms: [ScaledReturnType.Term(scale: 2 * xc, scaledValue: i0k0_scaled)])
+                let i0k0 = ScaledReturnType(scale: 2 * xc, value: i0k0_scaled)
+                // let i0k0 = ScaledReturnType(terms: [ScaledReturnType.Term(scale: 2 * xc, scaledValue: i0k0_scaled)])
                 
                 let newDn = (i0k0 * newCn)
                 self.Dn[index].append(newDn)
@@ -553,15 +556,19 @@ class Coil:Codable, Equatable {
                 
                 let J_M_exp = log(fabs(Jn)) + log(m) * -2
                 let J_value = Jn < 0 ? -1.0 : 1.0
-                let J_M_scaled = Coil.ScaledReturnType(terms: [ScaledReturnType.Term(scale: J_M_exp, scaledValue: J_value)])
+                let J_M_scaled = ScaledReturnType(scale: J_M_exp, value: J_value)
+                // let J_M_scaled = Coil.ScaledReturnType(terms: [ScaledReturnType.Term(scale: J_M_exp, scaledValue: J_value)])
                 
-                let I1 = Coil.ScaledReturnType(terms:[ScaledReturnType.Term(scale: x, scaledValue: gsl_sf_bessel_I1_scaled(x))])
+                let I1 =  ScaledReturnType(scale: x, value: gsl_sf_bessel_I1_scaled(x))
+                // let I1 = Coil.ScaledReturnType(terms:[ScaledReturnType.Term(scale: x, scaledValue: gsl_sf_bessel_I1_scaled(x))])
+                
                 let firstProduct = J_M_scaled * self.Cn[0][n] * I1
                 
-                let K1 = Coil.ScaledReturnType(terms: [ScaledReturnType.Term(scale: -x, scaledValue: gsl_sf_bessel_K1_scaled(x))])
+                let K1 = ScaledReturnType(scale: -x, value: gsl_sf_bessel_K1_scaled(x))
+                // let K1 = Coil.ScaledReturnType(terms: [ScaledReturnType.Term(scale: -x, scaledValue: gsl_sf_bessel_K1_scaled(x))])
                 let secondProduct = J_M_scaled * self.Dn[0][n] * K1
                 
-                let innerSum = (firstProduct + secondProduct).totalTrueValue * cos(m * z)
+                let innerSum = (firstProduct + secondProduct).doubleValue * cos(m * z)
                 
                 sumQueue.sync {
                     sum += innerSum
@@ -596,15 +603,18 @@ class Coil:Codable, Equatable {
                 
                 let J_M_exp = log(fabs(Jn)) + log(m) * -2
                 let J_value = Jn < 0 ? -1.0 : 1.0
-                let J_M_scaled = Coil.ScaledReturnType(terms: [ScaledReturnType.Term(scale: J_M_exp, scaledValue: J_value)])
+                let J_M_scaled = ScaledReturnType(scale: J_M_exp, value: J_value)
+                // let J_M_scaled = Coil.ScaledReturnType(terms: [ScaledReturnType.Term(scale: J_M_exp, scaledValue: J_value)])
                 
-                let I1 = Coil.ScaledReturnType(terms:[ScaledReturnType.Term(scale: x, scaledValue: gsl_sf_bessel_I1_scaled(x))])
+                let I1 =  ScaledReturnType(scale: x, value: gsl_sf_bessel_I1_scaled(x))
+                // let I1 = Coil.ScaledReturnType(terms:[ScaledReturnType.Term(scale: x, scaledValue: gsl_sf_bessel_I1_scaled(x))])
                 let firstProduct = J_M_scaled * self.En[1][n] * I1
                 
-                let K1 = Coil.ScaledReturnType(terms: [ScaledReturnType.Term(scale: -x, scaledValue: gsl_sf_bessel_K1_scaled(x))])
+                let K1 = ScaledReturnType(scale: -x, value: gsl_sf_bessel_K1_scaled(x))
+                // let K1 = Coil.ScaledReturnType(terms: [ScaledReturnType.Term(scale: -x, scaledValue: gsl_sf_bessel_K1_scaled(x))])
                 let secondProduct = J_M_scaled * self.Fn[1][n] * K1
                 
-                let innerSum = ((firstProduct + secondProduct).totalTrueValue - π / 2 * Coil.L1(x: x)) * cos(m * z)
+                let innerSum = ((firstProduct + secondProduct).doubleValue - π / 2 * Coil.L1(x: x)) * cos(m * z)
                 
                 sumQueue.sync {
                     sum += innerSum
@@ -638,9 +648,11 @@ class Coil:Codable, Equatable {
                 
                 let J_M_exp = log(fabs(Jn)) + log(m) * -2
                 let J_value = Jn < 0 ? -1.0 : 1.0
-                let J_M_scaled = Coil.ScaledReturnType(terms: [ScaledReturnType.Term(scale: J_M_exp, scaledValue: J_value)])
+                let J_M_scaled = ScaledReturnType(scale: J_M_exp, value: J_value)
+                // let J_M_scaled = Coil.ScaledReturnType(terms: [ScaledReturnType.Term(scale: J_M_exp, scaledValue: J_value)])
                 
-                let K1 = Coil.ScaledReturnType(terms: [ScaledReturnType.Term(scale: -x, scaledValue: gsl_sf_bessel_K1_scaled(x))])
+                let K1 = ScaledReturnType(scale: -x, value: gsl_sf_bessel_K1_scaled(x))
+                // let K1 = Coil.ScaledReturnType(terms: [ScaledReturnType.Term(scale: -x, scaledValue: gsl_sf_bessel_K1_scaled(x))])
                 let firstProduct = J_M_scaled * self.Gn[2][n] * K1
                 
                 let innerSum = firstProduct.totalTrueValue * cos(m * z)
@@ -741,10 +753,10 @@ class Coil:Codable, Equatable {
         let x1TermValue = x1 == 0 ? 0 : -π / 2.0 * x1 * (Coil.M1(x: x1) * gsl_sf_bessel_I0_scaled(x1) - Coil.M0(x: x1) * gsl_sf_bessel_I1_scaled(x1))
         let x2TermValue = π / 2.0 * x2 * (Coil.M1(x: x2) * gsl_sf_bessel_I0_scaled(x2) - Coil.M0(x: x2) * gsl_sf_bessel_I1_scaled(x2))
         
-        var terms = [ScaledReturnType.Term(scale: x1, scaledValue: x1TermValue)]
-        terms.append(ScaledReturnType.Term(scale: x2, scaledValue: x2TermValue))
+        var result = ScaledReturnType(scale: x1, value: x1TermValue)
+        result += ScaledReturnType(scale: x2, value: x2TermValue)
         
-        return ScaledReturnType(terms: terms)
+        return result
         
     }
     
@@ -756,10 +768,10 @@ class Coil:Codable, Equatable {
         let x1TermValue = x1 == 0 ? π / 2.0 :  π / 2.0 * x1 * (Coil.M1(x: x1) * gsl_sf_bessel_K0_scaled(x1) + Coil.M0(x: x1) * gsl_sf_bessel_K1_scaled(x1))
         let x2TermValue = -π / 2.0 * x2 * (Coil.M1(x: x2) * gsl_sf_bessel_K0_scaled(x2) + Coil.M0(x: x2) * gsl_sf_bessel_K1_scaled(x2))
         
-        var terms = [ScaledReturnType.Term(scale: -x1, scaledValue: x1TermValue)]
-        terms.append(ScaledReturnType.Term(scale: -x2, scaledValue: x2TermValue))
+        var result = ScaledReturnType(scale: -x1, value: x1TermValue)
+        result += ScaledReturnType(scale: -x2, value: x2TermValue)
         
-        return ScaledReturnType(terms: terms)
+        return result
     }
     
     /// DelVecchio 3e, Eq. 9.64
@@ -767,10 +779,10 @@ class Coil:Codable, Equatable {
     {
         let unscaledValue = x1 * Coil.M0(x: x1) - x2 * Coil.M0(x: x2) + (x1 * x1 - x2 * x2) / π + Coil.IntegralOf_M0_t_dt(from: x1, to: x2)
         
-        var terms = [ScaledReturnType.Term(scale: 0, scaledValue: unscaledValue)]
-        terms.append(contentsOf: Coil.IntegralOf_tI1_t_dt(from: x1, to: x2).terms)
+        var result = ScaledReturnType(scale: 0, value: unscaledValue)
+        result += Coil.IntegralOf_tI1_t_dt(from: x1, to: x2)
         
-        return ScaledReturnType(terms: terms)
+        return result
     }
     
     /// DelVecchio 3e, Eq. 9.58(a)
