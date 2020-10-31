@@ -25,6 +25,8 @@ class Section:Codable {
     let zMax:Double
     let N:Double
     
+    var Jn:[Double] = []
+    
     var parent:Coil?
     
     var inNode:Int
@@ -64,6 +66,33 @@ class Section:Codable {
         return result
     }
     
+    /// Function to initilaize the J-values so that we don't need to calculate them every time through the "infinite" loops. Do not call this function if the 'parent' property has not been set.
+    func InitializeJn()
+    {
+        guard let coil = self.parent else
+        {
+            DLog("The parent property must be set to use this function")
+            return
+        }
+        
+        let I = coil.I
+        let radBuild = coil.radialBuild
+        let L = coil.core.useWindowHt
+        
+        let J = self.J(I: I, radialBuild: radBuild)
+        
+        // J0
+        self.Jn.append(J * (self.zMax - self.zMin) / L)
+        
+        // Jn
+        for i in 0..<convergenceIterations
+        {
+            let n = Double(i + 1)
+            self.Jn.append(2 * J / (n * π) * (sin(n * π * self.zMax / L) - sin(n * π * self.zMin / L)))
+        }
+        
+    }
+    
     /// DelVecchio 3e, Eq. 9.98
     func SelfInductance() -> Double
     {
@@ -85,7 +114,7 @@ class Section:Codable {
         let L = coil.core.useWindowHt
         let r1 = coil.innerRadius
         let r2 = coil.outerRadius
-        let J = self.J(I: I, radialBuild: r2 - r1)
+        // let J = self.J(I: I, radialBuild: r2 - r1)
         
         var result = π * µ0 * N * N / (6 * L) * ((r2 + r1) * (r2 + r1) + 2 * r1 * r1)
         
@@ -101,7 +130,7 @@ class Section:Codable {
             
             let m = Double(n) * π / L
             
-            let Jn = self.Jn(n: n, J: J, L: L)
+            let Jn = self.Jn[n]
             
             // I was wondering why DelVecchio 3e, Eq. 9.98 was multiplying the second term by N^2/N^2 and I think that the reason is to stabilize the numbers in the sum.
             let J_M_NI_exp = log(fabs(Jn)) * 2 + log(m) * -4 + log(N * I) * -2
@@ -149,8 +178,8 @@ class Section:Codable {
         let N2 = sections[1].N
         let I1 = coils[0].I
         let I2 = coils[1].I
-        let J1 = sections[0].J(I: I1, radialBuild: coils[0].radialBuild)
-        let J2 = sections[1].J(I: I2, radialBuild: coils[1].radialBuild)
+        // let J1 = sections[0].J(I: I1, radialBuild: coils[0].radialBuild)
+        // let J2 = sections[1].J(I: I2, radialBuild: coils[1].radialBuild)
         
         let L = selfCoil.core.useWindowHt
         let r1 = coils[0].innerRadius
@@ -174,8 +203,8 @@ class Section:Codable {
             
             // let J1n = sections[0].parent!.J[n]
             // let J2n = sections[1].parent!.J[n]
-            let J1n = sections[0].Jn(n: n, J: J1, L: L)
-            let J2n = sections[1].Jn(n: n, J: J2, L: L)
+            let J1n = sections[0].Jn[n]
+            let J2n = sections[1].Jn[n]
             
             // I was wondering why DelVecchio 3e, Eq. 9.98 was multiplying the second term by N^2/N^2 and I think that the reason is to stabilize the numbers in the sum.
             let J_M_NI_exp = log(fabs(J1n)) + log(fabs(J2n)) + log(m) * -4 - log(N1 * I1 * N2 * I2)

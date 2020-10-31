@@ -296,7 +296,23 @@ class Coil:Codable, Equatable {
     // J-values for the coil
     var J:[Double] = []
     
-    var sections:[Section]
+    // Storage for the section array
+    var sectionStore:[Section] = []
+    
+    var sections:[Section] {
+        get {
+            return self.sectionStore
+        }
+        
+        set {
+            self.sectionStore = newValue
+            for nextSection in newValue
+            {
+                nextSection.parent = self
+                nextSection.InitializeJn()
+            }
+        }
+    }
     
     let core:Core
     
@@ -318,7 +334,7 @@ class Coil:Codable, Equatable {
         self.innerRadius = innerRadius
         self.outerRadius = outerRadius
         self.I = fabs(I)
-        self.sections = sections.sorted(by: {$0.zMin < $1.zMin})
+        self.sectionStore = sections.sorted(by: {$0.zMin < $1.zMin})
         self.core = core
         self.xlWinding = xlWinding
         
@@ -377,6 +393,7 @@ class Coil:Codable, Equatable {
         for nextSection in self.sections
         {
             nextSection.parent = self
+            nextSection.InitializeJn()
         }
     }
     
