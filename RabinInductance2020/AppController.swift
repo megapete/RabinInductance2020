@@ -364,10 +364,26 @@ class AppController: NSObject {
         
         while nextMultiplier < 3.01
         {
-            phase.core.windowHtMultiplier = nextMultiplier
+            let newCore = Core(realWindowHt: phase.core.realWindowHt, radius: phase.core.radius, windowMultiplier: nextMultiplier)
+            
+            var newCoils:[Coil] = []
+            for nextCoil in phase.coils
+            {
+                var newSections = nextCoil.sections
+                for nextSection in newSections
+                {
+                    nextSection.Jn = []
+                }
+                
+                let newCoil = Coil(coilID: nextCoil.coilID, name: nextCoil.name, currentDirection: nextCoil.currentDirection, innerRadius: nextCoil.innerRadius, outerRadius: nextCoil.outerRadius, I: nextCoil.I, sections: newSections, core: newCore, xlWinding: nil)
+                
+                newCoils.append(newCoil)
+            }
+            
+            let newPhase = Phase(core: newCore, coils: newCoils)
             
             print("Calculating inductance matrix entries...")
-            let A = phase.InductanceMatrix()
+            let A = newPhase.InductanceMatrix()
             print("Done!\n")
             
             print("Checking if positive definite..")
@@ -375,7 +391,7 @@ class AppController: NSObject {
             print("Done!\n")
             
             print("Calculating reactance...")
-            let reactance = phase.LeakageReactancePU(baseVA: phase.coils[0].xlWinding!.terminal.kVA / 3 * 1000.0, baseI: phase.coils[0].I)
+            let reactance = newPhase.LeakageReactancePU(baseVA: phase.coils[0].xlWinding!.terminal.kVA / 3 * 1000.0, baseI: phase.coils[0].I)
             print("Done!\n")
             
             print("For WindHtMult = \(nextMultiplier): Matrix is \(testPosDef)Positive Definite; Reactance: \(reactance)\n\n")
