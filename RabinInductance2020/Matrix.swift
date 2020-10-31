@@ -827,4 +827,13 @@ class MatrixDisplay:NSObject, NSWindowDelegate {
         self.contentView.frame.size = newFrameSize
     }
     
+    /// An attempt to make a simpler, lightweight cell struct to show the values in a Matrix
+    struct MatrixCell {
+        
+        var frame:NSRect
+        var stringValue:String
+        
+        
+    }
+    
 }

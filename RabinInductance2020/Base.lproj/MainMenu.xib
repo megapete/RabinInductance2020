@@ -706,6 +706,12 @@
                                     <action selector="handleTest6:" target="II9-PS-IqR" id="DSr-ZW-ifB"/>
                                 </connections>
                             </menuItem>
+                            <menuItem title="Test #7" id="BZz-7S-lNk">
+                                <modifierMask key="keyEquivalentModifierMask"/>
+                                <connections>
+                                    <action selector="handleTest7:" target="II9-PS-IqR" id="JCV-t7-8gz"/>
+                                </connections>
+                            </menuItem>
                         </items>
                     </menu>
                 </menuItem>

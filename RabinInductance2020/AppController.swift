@@ -177,10 +177,11 @@ class AppController: NSObject {
     @IBAction func handleTest3(_ sender: Any) {
         
         let core = Core(realWindowHt: 1.26, radius: 0.483 / 2)
+        let zOffset = 0 * meterPerInch // (Core.windowHtMultiplier - 1.0) / 2 * core.realWindowHt
         
         // we're tripling the window height, so we'll just add one window height to the z-dims of the coils
-        let fullInnerSection = Section(sectionID: Section.nextSerialNumber, zMin: 0 + 3.5 * meterPerInch, zMax: 0 + (3.5 + 41.025) * meterPerInch, N: 64, inNode: 0, outNode: 0)
-        let fullOuterSection = Section(sectionID: Section.nextSerialNumber, zMin: 0 + 3.5 * meterPerInch, zMax: 0 + (3.5 + 41.025) * meterPerInch, N: 613, inNode: 0, outNode: 0)
+        let fullInnerSection = Section(sectionID: Section.nextSerialNumber, zMin: zOffset + 3.5 * meterPerInch, zMax: zOffset + (3.5 + 41.025) * meterPerInch, N: 64, inNode: 0, outNode: 0)
+        let fullOuterSection = Section(sectionID: Section.nextSerialNumber, zMin: zOffset + 3.5 * meterPerInch, zMax: zOffset + (3.5 + 41.025) * meterPerInch, N: 613, inNode: 0, outNode: 0)
         
         let innerCoil = Coil(coilID: 1, name: "Inner", currentDirection: -1, innerRadius: 20.5 * meterPerInch / 2, outerRadius: 23.723 * meterPerInch / 2, I: 801.3, sections: [], core: core)
         let outerCoil = Coil(coilID: 2, name: "Outer", currentDirection: 1, innerRadius: 26.723 * meterPerInch / 2, outerRadius: 30.274 * meterPerInch / 2, I: 83.67, sections: [], core: core)
@@ -188,8 +189,8 @@ class AppController: NSObject {
         fullInnerSection.parent = innerCoil
         fullOuterSection.parent = outerCoil
         
-        innerCoil.sections = fullInnerSection.SplitSection(numSections: 64)
-        outerCoil.sections = fullOuterSection.SplitSection(numSections: 60)
+        innerCoil.sections = fullInnerSection.SplitSection(numSections: 10)
+        outerCoil.sections = fullOuterSection.SplitSection(numSections: 10)
         
         let phase = Phase(core: core, coils: [innerCoil, outerCoil])
         
@@ -258,8 +259,8 @@ class AppController: NSObject {
         fullInnerSection.parent = innerCoil
         fullOuterSection.parent = outerCoil
         
-        innerCoil.sections = fullInnerSection.SplitSection(numSections: 64, withInterdisk: 0.15 * 0.98 * meterPerInch)
-        outerCoil.sections = fullOuterSection.SplitSection(numSections: 60, withInterdisk: 0.2 * 0.98 * meterPerInch)
+        innerCoil.sections = fullInnerSection.SplitSection(numSections: 10, withInterdisk: 0.15 * 0.98 * meterPerInch)
+        outerCoil.sections = fullOuterSection.SplitSection(numSections: 10, withInterdisk: 0.2 * 0.98 * meterPerInch)
         
         let totalSections = innerCoil.sections.count + outerCoil.sections.count
         
@@ -350,7 +351,39 @@ class AppController: NSObject {
         
     }
     
-
+    @IBAction func handleTest7(_ sender: Any) {
+        
+        self.handleOpenDesignFile(sender)
+        
+        var nextMultiplier = 1.1
+        
+        guard let phase = self.currentPhase else
+        {
+            return
+        }
+        
+        while nextMultiplier < 3.01
+        {
+            phase.core.windowHtMultiplier = nextMultiplier
+            
+            print("Calculating inductance matrix entries...")
+            let A = phase.InductanceMatrix()
+            print("Done!\n")
+            
+            print("Checking if positive definite..")
+            let testPosDef = A.TestPositiveDefinite() ? "" : "NOT "
+            print("Done!\n")
+            
+            print("Calculating reactance...")
+            let reactance = phase.LeakageReactancePU(baseVA: phase.coils[0].xlWinding!.terminal.kVA / 3 * 1000.0, baseI: phase.coils[0].I)
+            print("Done!\n")
+            
+            print("For WindHtMult = \(nextMultiplier): Matrix is \(testPosDef)Positive Definite; Reactance: \(reactance)\n\n")
+            
+            nextMultiplier += 0.1
+        }
+    }
+    
     // MARK: Simple (unscaled) Versions of Del Vecchio functions (for testing)
     func IntegralOf_tI1_t_dt_from_0(to x:Double) -> Double
     {

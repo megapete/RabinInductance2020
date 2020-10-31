@@ -9,7 +9,7 @@ import Foundation
 
 class Phase:Codable {
     
-    let core:Core
+    var core:Core
     
     let coils:[Coil]
     
