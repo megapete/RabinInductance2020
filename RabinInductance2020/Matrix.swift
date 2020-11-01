@@ -536,7 +536,7 @@ class Matrix:CustomStringConvertible, Equatable {
         return true
     }
     
-    /// Solve AX=B where A is a positive definite matrix, and instead of A, use the Cholesky factorization of A (which should have been created using DPOTRF). **NOTE**: There is no checking done in this routine.
+    /// Solve AX=B where A is a positive definite matrix, and instead of A, use the Cholesky factorization of A (which should have been created using DPOTRF). **NOTE**: In the interest of better performance. there is NO checking done in this routine.
     /// - Parameter B: On entry, the general matrix B (as in AX=B). On successful exit, the solution matrix X
     /// - Parameter numBcols: The number of columns in B (equal to 1 for a vector)
     /// - Returns: 'true' if the call was successful, otherwise 'false'
@@ -633,7 +633,7 @@ class Matrix:CustomStringConvertible, Equatable {
             }
             else if info > 0
             {
-                DLog("The matrix is not positive definite (leading minor of order \(info)")
+                DLog("The matrix is not positive definite (leading minor of order \(info) is not positive definite)")
                 return false
             }
             

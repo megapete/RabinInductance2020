@@ -246,6 +246,7 @@ class Section:Codable {
         result += multiplier * sum
         
         assert(!result.isNaN, "NaN discovered!")
+        assert(result > 1.0E-12, "Small number: \(result)!")
         
         return result
     }

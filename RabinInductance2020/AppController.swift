@@ -355,7 +355,7 @@ class AppController: NSObject {
         
         self.handleOpenDesignFile(sender)
         
-        var nextMultiplier = 1.1
+        var nextMultiplier = 2.5
         
         guard let phase = self.currentPhase else
         {
