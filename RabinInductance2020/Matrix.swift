@@ -60,12 +60,33 @@ class Matrix:CustomStringConvertible, Equatable, Codable {
     /// The number of columns in the matrix
     let columns:Int
     
+    /// Required enum to make this class Codable
     enum CodingKeys: String, CodingKey {
         
         case type
         case rows
         case columns
         case buffer
+    }
+    
+    /// The type __CLPK_doublecomplex is actually a struct, and not Codable by default. We need to make an interface that is codable, which is actually ridiculously simple.
+    struct CodableDoubleComplex: Codable {
+        
+        let real:Double
+        let imag:Double
+        
+        /*
+        enum CodingKeys: CodingKey {
+            case real
+            case imag
+        }
+        */
+        
+        init(using number:__CLPK_doublecomplex)
+        {
+            self.real = number.r
+            self.imag = number.i
+        }
     }
     
     /// The designated initializer for the class. Note that the rows and columns must be passed as UInts (to enforce >0 rules at the compiler level) but are immediately converted to Ints internally to keep from having to wrap things in Int()
@@ -147,8 +168,21 @@ class Matrix:CustomStringConvertible, Equatable, Codable {
         
         if self.type == .Double
         {
-            let test = UnsafeMutablePointer<Double>.allocate(capacity: 1)
-            let data = Data(buffer: test)
+            let buffPtr = UnsafeMutableBufferPointer(start: self.doubleBuffPtr, count: self.rows * self.columns)
+            let buffArray = Array(buffPtr)
+            
+            try container.encode(buffArray, forKey: .buffer)
+        }
+        else // .Complex
+        {
+            let buffPtr = UnsafeMutableBufferPointer(start: self.complexBuffPtr, count: self.rows * self.columns)
+            var codableArray:[CodableDoubleComplex] = []
+            for nextComplex in buffPtr
+            {
+                codableArray.append(CodableDoubleComplex(using: nextComplex))
+            }
+            
+            try container.encode(codableArray, forKey: .buffer)
         }
     }
     
