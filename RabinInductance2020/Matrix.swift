@@ -11,7 +11,7 @@ import Cocoa
 import Accelerate
 
 /// A general-purpose, lightweight matrix class. Double and Complex types are allowed,
-class Matrix:CustomStringConvertible, Equatable {
+class Matrix:CustomStringConvertible, Equatable, Codable {
     
     /// A simple way of looking at the matrix in the Debug window. Don't use this for huge (or supersmall) numbers
     var description: String {
@@ -44,7 +44,7 @@ class Matrix:CustomStringConvertible, Equatable {
     }
     
     /// The two number types that we allow
-    enum NumberType {
+    enum NumberType:Int {
         case Double
         case Complex
     }
@@ -59,6 +59,14 @@ class Matrix:CustomStringConvertible, Equatable {
     let rows:Int
     /// The number of columns in the matrix
     let columns:Int
+    
+    enum CodingKeys: String, CodingKey {
+        
+        case type
+        case rows
+        case columns
+        case buffer
+    }
     
     /// The designated initializer for the class. Note that the rows and columns must be passed as UInts (to enforce >0 rules at the compiler level) but are immediately converted to Ints internally to keep from having to wrap things in Int()
     init(type:NumberType, rows:UInt, columns:UInt) {
@@ -123,6 +131,25 @@ class Matrix:CustomStringConvertible, Equatable {
         self.columns = 0
         self.complexBuffPtr = UnsafeMutablePointer<__CLPK_doublecomplex>.allocate(capacity: 1)
         self.doubleBuffPtr = UnsafeMutablePointer<__CLPK_doublereal>.allocate(capacity: 1)
+    }
+    
+    /// Decoding initializer
+    required init(from decoder: Decoder) throws {
+        
+    }
+    
+    func encode(to encoder: Encoder) throws {
+        
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(self.type.rawValue, forKey: .type)
+        try container.encode(self.rows, forKey: .rows)
+        try container.encode(self.columns, forKey: .columns)
+        
+        if self.type == .Double
+        {
+            let test = UnsafeMutablePointer<Double>.allocate(capacity: 1)
+            let data = Data(buffer: test)
+        }
     }
     
     /// We need to take care of memory cleanup ourselves

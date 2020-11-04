@@ -15,6 +15,20 @@ class Phase:Codable {
     
     var xlDesignFile:PCH_ExcelDesignFile? = nil
     
+    private var indMatrixStore:Matrix? = nil
+    
+    var M:Matrix {
+        get {
+            
+            if self.indMatrixStore == nil
+            {
+                
+            }
+            
+            return indMatrixStore!
+        }
+    }
+    
     init(core:Core, coils:[Coil]) {
         
         self.core = core
@@ -34,7 +48,7 @@ class Phase:Codable {
         self.init(core:core, coils:coils)
     }
     
-    func InductanceMatrix() -> Matrix
+    func RecalculateInductanceMatrix() -> Matrix
     {
         // The key is the sectionID, the value is the index into the matrix
         var sectionMap:Dictionary<Int, Int> = [:]

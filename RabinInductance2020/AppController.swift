@@ -102,7 +102,7 @@ class AppController: NSObject {
             return
         }
         
-        let indMatrix = phase.InductanceMatrix()
+        let indMatrix = phase.RecalculateInductanceMatrix()
         
         print("Matrix is positive definite: \(indMatrix.TestPositiveDefinite())")
         
@@ -194,7 +194,7 @@ class AppController: NSObject {
         
         let phase = Phase(core: core, coils: [innerCoil, outerCoil])
         
-        let testMatrix = phase.InductanceMatrix()
+        let testMatrix = phase.RecalculateInductanceMatrix()
         
         let testPosDef = testMatrix.TestPositiveDefinite()
         
@@ -266,7 +266,7 @@ class AppController: NSObject {
         
         let phase = Phase(core: core, coils: [innerCoil, outerCoil])
         
-        let A = phase.InductanceMatrix()
+        let A = phase.RecalculateInductanceMatrix()
         
         let testPosDef = A.TestPositiveDefinite()
         
@@ -383,7 +383,7 @@ class AppController: NSObject {
             let newPhase = Phase(core: newCore, coils: newCoils)
             
             print("Calculating inductance matrix entries...")
-            let A = newPhase.InductanceMatrix()
+            let A = newPhase.RecalculateInductanceMatrix()
             print("Done!\n")
             
             print("Checking if positive definite..")
