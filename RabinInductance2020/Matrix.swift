@@ -61,7 +61,7 @@ class Matrix:CustomStringConvertible, Equatable, Codable {
     let columns:Int
     
     /// Required enum to make this class Codable
-    enum CodingKeys: String, CodingKey {
+    enum CodingKeys: CodingKey {
         
         case type
         case rows
@@ -74,13 +74,6 @@ class Matrix:CustomStringConvertible, Equatable, Codable {
         
         let real:Double
         let imag:Double
-        
-        /*
-        enum CodingKeys: CodingKey {
-            case real
-            case imag
-        }
-        */
         
         init(using number:__CLPK_doublecomplex)
         {
@@ -157,37 +150,82 @@ class Matrix:CustomStringConvertible, Equatable, Codable {
     /// Decoding initializer
     required init(from decoder: Decoder) throws {
         
+        do {
+            
+            let storedValues = try decoder.container(keyedBy: CodingKeys.self)
+            
+            let storedType = try storedValues.decode(Int.self, forKey: .type)
+            self.type = NumberType(rawValue: storedType)!
+            
+            self.rows = try storedValues.decode(Int.self, forKey: .rows)
+            self.columns = try storedValues.decode(Int.self, forKey: .columns)
+            
+            if self.type == .Double
+            {
+                let array:[__CLPK_doublereal] = try storedValues.decode([__CLPK_doublereal].self, forKey: .buffer)
+                self.doubleBuffPtr = UnsafeMutablePointer<__CLPK_doublereal>.allocate(capacity: array.count)
+                for i in 0..<array.count
+                {
+                    self.doubleBuffPtr[i] = array[i]
+                }
+                
+                self.complexBuffPtr = UnsafeMutablePointer<__CLPK_doublecomplex>.allocate(capacity: 1)
+            }
+            else
+            {
+                let array:[CodableDoubleComplex] = try storedValues.decode([CodableDoubleComplex].self, forKey: .buffer)
+                self.complexBuffPtr = UnsafeMutablePointer<__CLPK_doublecomplex>.allocate(capacity: array.count)
+                for i in 0..<array.count
+                {
+                    let newValue = __CLPK_doublecomplex(r: array[i].real, i: array[i].imag)
+                    self.complexBuffPtr[i] = newValue
+                }
+                
+                self.doubleBuffPtr = UnsafeMutablePointer<__CLPK_doublereal>.allocate(capacity: 1)
+            }
+        }
+        catch {
+            
+            throw error
+        }
     }
     
     func encode(to encoder: Encoder) throws {
         
-        var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode(self.type.rawValue, forKey: .type)
-        try container.encode(self.rows, forKey: .rows)
-        try container.encode(self.columns, forKey: .columns)
-        
-        if self.type == .Double
-        {
-            let buffPtr = UnsafeMutableBufferPointer(start: self.doubleBuffPtr, count: self.rows * self.columns)
-            let buffArray = Array(buffPtr)
+        do {
+            var container = encoder.container(keyedBy: CodingKeys.self)
+            try container.encode(self.type.rawValue, forKey: .type)
+            try container.encode(self.rows, forKey: .rows)
+            try container.encode(self.columns, forKey: .columns)
             
-            try container.encode(buffArray, forKey: .buffer)
-        }
-        else // .Complex
-        {
-            let buffPtr = UnsafeMutableBufferPointer(start: self.complexBuffPtr, count: self.rows * self.columns)
-            var codableArray:[CodableDoubleComplex] = []
-            for nextComplex in buffPtr
+            if self.type == .Double
             {
-                codableArray.append(CodableDoubleComplex(using: nextComplex))
+                let buffPtr = UnsafeMutableBufferPointer(start: self.doubleBuffPtr, count: self.rows * self.columns)
+                let buffArray = Array(buffPtr)
+                
+                try container.encode(buffArray, forKey: .buffer)
             }
+            else // .Complex
+            {
+                let buffPtr = UnsafeMutableBufferPointer(start: self.complexBuffPtr, count: self.rows * self.columns)
+                var codableArray:[CodableDoubleComplex] = []
+                for nextComplex in buffPtr
+                {
+                    codableArray.append(CodableDoubleComplex(using: nextComplex))
+                }
+                
+                try container.encode(codableArray, forKey: .buffer)
+            }
+        }
+        catch {
             
-            try container.encode(codableArray, forKey: .buffer)
+            throw error
         }
     }
     
     /// We need to take care of memory cleanup ourselves
     deinit {
+        
         self.doubleBuffPtr.deallocate()
         self.complexBuffPtr.deallocate()
     }
@@ -747,7 +785,7 @@ class Matrix:CustomStringConvertible, Equatable, Codable {
     
 }
 
-/// A class for displaying a Matrix. After looking into NSTableView, NSGridView, and NSCollectionView, I decided to roll my own.
+/// A class for displaying a Matrix. After looking into NSTableView, NSGridView, and NSCollectionView, I decided to roll my own. At this time, this only works for Double matrices (no big deal, as this class really REALLY needs to be redesigned and rewritten).
 class MatrixDisplay:NSObject, NSWindowDelegate {
     
     @IBOutlet var window: NSWindow!

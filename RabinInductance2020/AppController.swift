@@ -109,6 +109,90 @@ class AppController: NSObject {
         // let _ = MatrixDisplay(windowTitle: "Matrix", matrix: indMatrix)
     }
     
+    @IBAction func handleTestMatrixOpen(_ sender: Any) {
+        
+        let panel = NSOpenPanel()
+        
+        panel.allowedFileTypes = ["txt"]
+        panel.allowsOtherFileTypes = false
+        panel.allowsMultipleSelection = false
+        
+        if panel.runModal() == .OK
+        {
+            if let fileURL = panel.url
+            {
+                do {
+                    
+                    let fileData = try Data(contentsOf: fileURL)
+                    
+                    let decoder = JSONDecoder()
+                    
+                    let testMatrix = try decoder.decode(Matrix.self, from: fileData)
+                    
+                    let _ = MatrixDisplay(matrix: testMatrix)
+                    
+                }
+                catch {
+                    
+                    let alert = NSAlert(error: error)
+                    let _ = alert.runModal()
+                    return
+                }
+                
+                
+            }
+        }
+    }
+    
+    
+    @IBAction func handleTestMatrixSave(_ sender: Any) {
+        
+        let testMatrix = Matrix(type: .Double, rows: 3, columns: 5)
+        
+        var value = 1.0
+        for i in 0..<3
+        {
+            for j in 0..<5
+            {
+                testMatrix[i, j] = value
+                value += 1.0
+            }
+        }
+        
+        // let _ = MatrixDisplay(matrix: testMatrix)
+        
+        let panel = NSSavePanel()
+        
+        panel.allowedFileTypes = ["txt"]
+        panel.allowsOtherFileTypes = false
+        
+        if panel.runModal() == .OK
+        {
+            if let fileURL = panel.url
+            {
+                let encoder = JSONEncoder()
+                
+                do {
+                    
+                    let fileData = try encoder.encode(testMatrix)
+                    
+                    if FileManager.default.fileExists(atPath: fileURL.path)
+                    {
+                        try FileManager.default.removeItem(at: fileURL)
+                    }
+                    
+                    FileManager.default.createFile(atPath: fileURL.path, contents: fileData, attributes: nil)
+                }
+                catch {
+                    
+                    let alert = NSAlert(error: error)
+                    let _ = alert.runModal()
+                    return
+                }
+            }
+        }
+        
+    }
     
     @IBAction func handleTest1(_ sender: Any) {
         
