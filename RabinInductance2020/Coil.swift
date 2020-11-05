@@ -401,9 +401,10 @@ class Coil:Codable, Equatable {
     /// - Parameter winding: The PCH_ExcelDesignFile.Winding from which the Coil will be modeled
     /// - Parameter core: The Core for the phase
     /// - Parameter detailedModel: If 'true', all sections (discs) and/or layers are modeled. Otherwise, only the "major" sections are modeled (see Discussion).
+    /// - Parameter centerOnUseCore: If 'true', the axial sections are centered on the core AFTER the window-height factor has been applied.
     ///
     /// 'Major' sections are defined as axial sections that only break at the center-gap and DV gaps (if any). Axial interdisc and radial cooling ducts are ignored.
-    convenience init(winding:PCH_ExcelDesignFile.Winding, core:Core, detailedModel:Bool = false)
+    convenience init(winding:PCH_ExcelDesignFile.Winding, core:Core, detailedModel:Bool = false, centerOnUseCore:Bool)
     {
         let coilID = winding.position
         let coilName = "Coil \(winding.position + 1)"
@@ -458,7 +459,7 @@ class Coil:Codable, Equatable {
                     gaps = [winding.bottomDvGap, winding.centerGap, winding.topDvGap]
                 }
                 
-                var currentMinZ = winding.bottomEdgePack
+                var currentMinZ = centerOnUseCore ? (core.useWindowHt - winding.electricalHeight) / 2 : winding.bottomEdgePack
                 
                 for nextMainSection in mainSectionDiscs
                 {
@@ -519,7 +520,7 @@ class Coil:Codable, Equatable {
                     gaps = [winding.bottomDvGap, winding.centerGap, winding.topDvGap, 0.0]
                 }
                 
-                var currentMinZ = winding.bottomEdgePack
+                var currentMinZ = centerOnUseCore ? (core.useWindowHt - winding.electricalHeight) / 2 : winding.bottomEdgePack
                 
                 for nextMainSection in mainSectionDiscs
                 {

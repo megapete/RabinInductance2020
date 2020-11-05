@@ -42,7 +42,7 @@ class Phase:Codable {
         var coils:[Coil] = []
         for nextWinding in xlDesign.windings
         {
-            coils.append(Coil(winding: nextWinding, core: core, detailedModel: true))
+            coils.append(Coil(winding: nextWinding, core: core, detailedModel: true, centerOnUseCore: true))
         }
         
         self.init(core:core, coils:coils)

@@ -435,25 +435,57 @@ class AppController: NSObject {
         
     }
     
+    func CheckJ(coil:Coil) -> [Double]
+    {
+        let granularity = 0.001 // meters
+        
+        var coilJ:[Double] = Array(repeating: 0.0, count: convergenceIterations + 1)
+        
+        for nextSection in coil.sections
+        {
+            for i in 0...convergenceIterations
+            {
+                coilJ[i] += nextSection.Jn[i]
+            }
+        }
+        
+        var z = 0.0
+        var result:[Double] = []
+        let L = coil.core.useWindowHt
+        while z < L
+        {
+            var nextJ = coilJ[0]
+            for i in 1...convergenceIterations
+            {
+                nextJ += coilJ[i] * cos(Double(i) * π * z / L)
+            }
+            
+            result.append(nextJ)
+            z += granularity
+        }
+        
+        return result
+    }
+    
     @IBAction func handleTest7(_ sender: Any) {
         
         self.handleOpenDesignFile(sender)
         
-        var nextMultiplier = 2.5
+        var nextMultiplier = 1.5
         
         guard let phase = self.currentPhase else
         {
             return
         }
         
-        while nextMultiplier < 3.01
+        while nextMultiplier < 2.11
         {
             let newCore = Core(realWindowHt: phase.core.realWindowHt, radius: phase.core.radius, windowMultiplier: nextMultiplier)
             
             var newCoils:[Coil] = []
             for nextCoil in phase.coils
             {
-                var newSections = nextCoil.sections
+                let newSections = nextCoil.sections
                 for nextSection in newSections
                 {
                     nextSection.Jn = []
@@ -463,6 +495,8 @@ class AppController: NSObject {
                 
                 newCoils.append(newCoil)
             }
+            
+            let testJ = self.CheckJ(coil: newCoils[0])
             
             let newPhase = Phase(core: newCore, coils: newCoils)
             
