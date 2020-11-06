@@ -441,17 +441,29 @@ class AppController: NSObject {
         
         var coilJ:[Double] = Array(repeating: 0.0, count: convergenceIterations + 1)
         
+        let L = coil.core.useWindowHt
+        var altCoilJ:[Double] = Array(repeating: 0.0, count: convergenceIterations + 1)
+        
         for nextSection in coil.sections
         {
+            let J = nextSection.J(I: coil.I, radialBuild: coil.radialBuild)
             for i in 0...convergenceIterations
             {
                 coilJ[i] += nextSection.Jn[i]
+                altCoilJ[i] += nextSection.Jn(n: i, J: J, L: L)
+                
+                if coilJ[i] != altCoilJ[i]
+                {
+                    print("AGGGGHHHH")
+                }
             }
         }
         
+        print("Section J: \(coil.sections[0].J(I: coil.I, radialBuild: coil.radialBuild))")
+        print("Coil J: function: \(coil.J0()), here: \(coilJ[0])")
         var z = 0.0
         var result:[Double] = []
-        let L = coil.core.useWindowHt
+        var maxJ = 0.0
         while z < L
         {
             var nextJ = coilJ[0]
@@ -460,9 +472,16 @@ class AppController: NSObject {
                 nextJ += coilJ[i] * cos(Double(i) * π * z / L)
             }
             
+            if nextJ > maxJ
+            {
+                maxJ = nextJ
+            }
+            
             result.append(nextJ)
             z += granularity
         }
+        
+        print("Max J: \(maxJ)")
         
         return result
     }
