@@ -22,7 +22,7 @@ class Phase:Codable {
             
             if self.indMatrixStore == nil
             {
-                
+                return Matrix()
             }
             
             return indMatrixStore!

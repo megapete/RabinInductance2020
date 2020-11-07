@@ -29,8 +29,6 @@ class Coil:Codable, Equatable {
     /// If the Coil was created using an Excel-gernerated design file, this will hold a copy of the Winding
     let xlWinding:PCH_ExcelDesignFile.Winding?
     
-    
-    
     let coilID:Int
     let name:String
     var currentDirection:Int
@@ -45,6 +43,7 @@ class Coil:Codable, Equatable {
     
     let I:Double
     
+    /// The ScaledReturnType stores a number as a power of e and a constant multiplier. The idea is to make addition and subtraction of very large (or very small) numbers more precise, escpeciially when there is a long equation with pluses and minuese.
     struct ScaledReturnType:Codable, CustomStringConvertible {
         
         var description: String {
@@ -70,18 +69,22 @@ class Coil:Codable, Equatable {
             }
         }
         
-        
+        /// The current number of terms in the ScaledReturnType
         var count:Int {
             get {
                 return self.terms.count
             }
         }
         
+        /// The struct used to hold a single term of the ScaledReturnType
         struct Term:Codable {
             
+            /// The power of the term (as in e^scale)
             let scale:Double
+            /// The value that e^scale will be multiplied to give the actual vaklue of the number
             let scaledValue:Double
             
+            /// A convenience routine to get the true value of the number (as a Double)
             var trueValue:Double {
                 get {
                     return exp(scale) * scaledValue
@@ -89,21 +92,26 @@ class Coil:Codable, Equatable {
             }
         }
         
+        /// An array holding the terms of the ScaledReturnType
         var terms:[Term]
         
-        /// Better (I think) method of getting the Double value of a ScaledReturnType. The idea is to sort the terms so that the highest scales are at the beginning of the array, the remove the first pair of terms and add them together to from a new term. This new term is the appended to the array, which is resorted and the whole thing goes on until there is only one term left, which is then converted to a double. I'm hoping that this method will keep large values (in the terms array) from swamping smaller ones.
+        /// Better (I think) method of getting the Double value of a ScaledReturnType. The idea is to sort the terms so that the highest scales are at the beginning of the array, then remove the first pair of terms and add them together to from a new term. This new term is then appended to the array, which is resorted and the whole thing goes on until there is only one term left, which is then converted to a double. I'm hoping that this method will keep large values (in the terms array) from swamping smaller ones.
         var doubleValue:Double {
             get {
                 
+                // Sort the terms array based on the scale
                 var resultTerms = self.terms.sorted(by: {$0.scale > $1.scale})
                 
+                // Keep going until there is only a single term left
                 while resultTerms.count > 1
                 {
+                    // Remove and store the first term - if it's zero, go back to the top of the loop
                     let firstTerm = resultTerms.removeFirst()
                     if firstTerm.scaledValue == 0
                     {
                         continue
                     }
+                    // Remove and store the second term. If it's zero. reinsert the first term (at the beginning) and start the loop again
                     let secondTerm = resultTerms.removeFirst()
                     if secondTerm.scaledValue == 0
                     {
@@ -111,38 +119,44 @@ class Coil:Codable, Equatable {
                         continue
                     }
                     
-                    // print("First: \(firstTerm)")
-                    // print("Second: \(secondTerm)")
+                    // Evaluate the sum of the first two terms as a Double, scaled to the e-power of the second term
                     let b = secondTerm.scale
                     let newValue = exp(firstTerm.scale - b) * firstTerm.scaledValue + secondTerm.scaledValue
                     
+                    // If the sum is zero, go back to the top of the loop
                     if newValue == 0
                     {
                         continue
                     }
                     
+                    // We can't take the ln of a negative number, so we set the new term's value as +1 or -1, depending on the sign
                     let sValue = newValue < 0 ? -1.0 : 1.0
-                    let newTerm = Term(scale: b + log(fabs(newValue)), scaledValue: sValue)
-                    // print("New: \(newTerm)")
                     
+                    // Save the new term
+                    let newTerm = Term(scale: b + log(fabs(newValue)), scaledValue: sValue)
+                    
+                    // Add the term back to the array and sort the array based on the scale
                     resultTerms.append(newTerm)
                     resultTerms.sort(by: {$0.scale > $1.scale})
                 }
                 
+                // If no terms are left, return 0
                 if resultTerms.count == 0
                 {
                     return 0.0
                 }
                 
+                // There's one term left, evaluate it as a Double
                 let result = exp(resultTerms[0].scale) * resultTerms[0].scaledValue
                 
+                // In a Debug build, check that we don't have a NaN
                 assert(!result.isNaN, "Got a NaN!")
                 
                 return result
             }
         }
         
-        /// Easy, but (I think), less precise way of getting the Double value of the ScaledReturnType (As compared to "doubleValue".
+        /// Easy to program, but (I think), less precise way of getting the Double value of the ScaledReturnType (As compared to "doubleValue").
         var totalTrueValue:Double {
             get {
                 
@@ -159,6 +173,7 @@ class Coil:Codable, Equatable {
             }
         }
         
+        // Operators for the struct.
         static func + (lhs:ScaledReturnType, rhs:ScaledReturnType) -> ScaledReturnType
         {
             var newTerms = lhs.terms
@@ -184,6 +199,7 @@ class Coil:Codable, Equatable {
             return ScaledReturnType(terms: newTerms)
         }
         
+        // Multiply a scalar by a ScaledReturnType and return a ScaledReturnType
         static func * (lhs:Double, rhs:ScaledReturnType) -> ScaledReturnType
         {
             var newTerms:[Coil.ScaledReturnType.Term] = []
@@ -216,7 +232,7 @@ class Coil:Codable, Equatable {
             return ScaledReturnType(terms: newTerms)
         }
         
-        /// Return a new ScaledReturnType that is made up of a single term. This uses the same logic as the "doubleValue" computed property.
+        /// Return a new ScaledReturnType that is made up of a single term. This uses the same logic as the "doubleValue" computed property. See that property for explanatory comments.
         func reduced() -> ScaledReturnType
         {
             var resultTerms = self.terms.sorted(by: {$0.scale > $1.scale})
@@ -258,11 +274,13 @@ class Coil:Codable, Equatable {
             return ScaledReturnType(terms: resultTerms)
         }
         
+        /// Initializer that takes an array of ScaledReturnType.Terms as an argument.
         init(terms:[Term])
         {
             self.terms = terms
         }
         
+        /// Create the ScaledReturnType of a Double
         init(number:Double)
         {
             if number == 0.0
@@ -277,12 +295,14 @@ class Coil:Codable, Equatable {
             }
         }
         
+        /// Create a ScaledReturnType with the scale and multiplied value of a number
         init(scale:Double, value:Double)
         {
             self.terms = [ScaledReturnType.Term(scale: scale, scaledValue: value)]
         }
     }
     
+    // Arrays to hold the constant radius-based "letter-functions" of the Coil
     var Cn:[[ScaledReturnType]] = Array(repeating: [], count: 3)
     var Dn:[[ScaledReturnType]] = Array(repeating: [], count: 3)
     var En:[[ScaledReturnType]] = Array(repeating: [], count: 3)
@@ -314,6 +334,7 @@ class Coil:Codable, Equatable {
         }
     }
     
+    // The Core that this coil is on
     let core:Core
     
     /// Designated initializer for the Coil class.
