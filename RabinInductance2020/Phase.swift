@@ -9,32 +9,86 @@ import Foundation
 
 class Phase:Codable {
     
+    /// The core for this phase
     var core:Core
     
+    /// The coils on this phase
     let coils:[Coil]
     
+    /// The original Excel design file used to create this phase (if any)
     var xlDesignFile:PCH_ExcelDesignFile? = nil
     
+    /// The storage for the inductance matrix for the coils on this phase (private variable)
     private var indMatrixStore:Matrix? = nil
     
+    /// The public exposure of the inductance matrix for this phase. This is a read-only variable. If the inductance matrix hasn't been calculated yet, do so and save it to the private storage before returning it.
     var M:Matrix {
         get {
             
-            if self.indMatrixStore == nil
+            if coils.count == 0
             {
                 return Matrix()
+            }
+            
+            if self.indMatrixStore == nil
+            {
+                indMatrixStore = self.CalculateInductanceMatrix()
             }
             
             return indMatrixStore!
         }
     }
     
+    /// An array of all the sections in the phase
+    var sections:[Section]
+    {
+        get {
+            
+            var result:[Section] = []
+            
+            for nextCoil in coils
+            {
+                result.append(contentsOf: nextCoil.sections)
+            }
+            
+            return result
+        }
+    }
+    
+    private var sectionMapStore:Dictionary<Int, Int>? = nil
+    
+    /// A map of the section IDs into the Inductance Matrix for the phase. The key is the sectionID, the value is the index into the matrix.
+    var sectionMap:Dictionary<Int, Int> {
+        get {
+            
+            if self.coils.count == 0
+            {
+                return [:]
+            }
+            
+            // The key is the sectionID, the value is the index into the matrix
+            var result:Dictionary<Int, Int> = [:]
+            
+            var index = 0
+            for nextSection in self.sections
+            {
+                result[nextSection.sectionID] = index
+                index += 1
+            }
+            
+            return result
+        }
+    }
+    
+    
+    /// Designated initializer for the class
     init(core:Core, coils:[Coil]) {
         
         self.core = core
         self.coils = coils
     }
     
+    /// Initializer from an Excel design file.
     convenience init(xlDesign:PCH_ExcelDesignFile) {
         
         let core = Core(realWindowHt: xlDesign.core.windowHeight, radius: xlDesign.core.diameter / 2, windowMultiplier: 1.5)
@@ -48,14 +102,23 @@ class Phase:Codable {
         self.init(core:core, coils:coils)
     }
     
+    /// Recalculate the inductance matrix for the phase
     func RecalculateInductanceMatrix() -> Matrix
+    {
+        indMatrixStore = self.CalculateInductanceMatrix()
+        
+        return indMatrixStore!
+    }
+    
+    /// Calculate the inductance matrix for the phase with the current sections that make up the coils.
+    private func CalculateInductanceMatrix() -> Matrix
     {
         // The key is the sectionID, the value is the index into the matrix
         var sectionMap:Dictionary<Int, Int> = [:]
         
-        var allSections = self.AllSections()
+        var allSections = self.sections
         var index = 0
-        for nextSection in AllSections()
+        for nextSection in allSections
         {
             sectionMap[nextSection.sectionID] = index
             index += 1
@@ -107,7 +170,7 @@ class Phase:Codable {
         var sumLI = 0.0
         var sumMII = 0.0
         
-        var allSections = self.AllSections()
+        var allSections = self.sections
         
         while allSections.count > 0
         {
@@ -140,15 +203,4 @@ class Phase:Codable {
         return 0.5 * sumLI + sumMII
     }
     
-    func AllSections() -> [Section]
-    {
-        var result:[Section] = []
-        
-        for nextCoil in coils
-        {
-            result.append(contentsOf: nextCoil.sections)
-        }
-        
-        return result
-    }
 }
