@@ -7,7 +7,7 @@
 
 import Foundation
 
-fileprivate let defaultWindowHtMultiplier = 1.5
+fileprivate let defaultWindowHtMultiplier = 1.9
 
 struct Core:Codable {
     

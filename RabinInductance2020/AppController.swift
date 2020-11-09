@@ -219,7 +219,7 @@ class AppController: NSObject {
         
         let phase = Phase(core: core, coils: [innerCoil, outerCoil])
         
-        let energy = phase.Energy()
+        let energy = phase.old_Energy()
         
         print("Energy: \(energy)")
         print("Leakage inductance from energy (LV side): \(2.0 * energy / (170.0 * 170.0))")
@@ -250,7 +250,7 @@ class AppController: NSObject {
         
         let phase = Phase(core: core, coils: [innerCoil, outerCoil])
         
-        let energy = phase.Energy()
+        let energy = phase.old_Energy()
         
         print("Energy: \(energy)")
         print("Leakage inductance from energy (LV side): \(2.0 * energy / (801.3 * 801.3))")
@@ -536,6 +536,13 @@ class AppController: NSObject {
             nextMultiplier += 0.1
         }
     }
+    
+    @IBAction func handleCalculateEnergy(_ sender: Any) {
+        
+        print("Energy (old way): \(self.currentPhase!.old_Energy())")
+        print("Energy (new way): \(self.currentPhase!.Energy())")
+    }
+    
     
     // MARK: Simple (unscaled) Versions of Del Vecchio functions (for testing)
     func IntegralOf_tI1_t_dt_from_0(to x:Double) -> Double

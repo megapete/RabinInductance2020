@@ -57,7 +57,7 @@ class Phase:Codable {
     
     private var sectionMapStore:Dictionary<Int, Int>? = nil
     
-    /// A map of the section IDs into the Inductance Matrix for the phase. The key is the sectionID, the value is the index into the matrix.
+    /// A map of the section IDs into the _current_ Inductance Matrix for the phase. The key is the sectionID, the value is the index into the matrix.
     var sectionMap:Dictionary<Int, Int> {
         get {
             
@@ -66,17 +66,22 @@ class Phase:Codable {
                 return [:]
             }
             
-            // The key is the sectionID, the value is the index into the matrix
-            var result:Dictionary<Int, Int> = [:]
-            
-            var index = 0
-            for nextSection in self.sections
+            if self.sectionMapStore == nil
             {
-                result[nextSection.sectionID] = index
-                index += 1
+                // The key is the sectionID, the value is the index into the matrix
+                var result:Dictionary<Int, Int> = [:]
+                
+                var index = 0
+                for nextSection in self.sections
+                {
+                    result[nextSection.sectionID] = index
+                    index += 1
+                }
+                
+                self.sectionMapStore = result
             }
             
-            return result
+            return self.sectionMapStore!
         }
     }
     
@@ -96,7 +101,7 @@ class Phase:Codable {
         var coils:[Coil] = []
         for nextWinding in xlDesign.windings
         {
-            coils.append(Coil(winding: nextWinding, core: core, detailedModel: true, centerOnUseCore: true))
+            coils.append(Coil(winding: nextWinding, core: core, detailedModel: true, centerOnUseCore: false))
         }
         
         self.init(core:core, coils:coils)
@@ -105,32 +110,23 @@ class Phase:Codable {
     /// Recalculate the inductance matrix for the phase
     func RecalculateInductanceMatrix() -> Matrix
     {
-        indMatrixStore = self.CalculateInductanceMatrix()
+        self.sectionMapStore = nil
+        self.indMatrixStore = nil
         
-        return indMatrixStore!
+        return self.M
     }
     
     /// Calculate the inductance matrix for the phase with the current sections that make up the coils.
     private func CalculateInductanceMatrix() -> Matrix
     {
-        // The key is the sectionID, the value is the index into the matrix
-        var sectionMap:Dictionary<Int, Int> = [:]
-        
         var allSections = self.sections
-        var index = 0
-        for nextSection in allSections
-        {
-            sectionMap[nextSection.sectionID] = index
-            index += 1
-        }
         
         let result = Matrix(type: .Double, rows: UInt(allSections.count), columns: UInt(allSections.count))
         
         while allSections.count > 0
         {
             let nextSection = allSections.removeFirst()
-            // let nextParent = nextSection.parent!
-            let nextIndex = sectionMap[nextSection.sectionID]!
+            let nextIndex = self.sectionMap[nextSection.sectionID]!
             
             let selfInd = nextSection.SelfInductance()
             result[nextIndex, nextIndex] = selfInd
@@ -160,11 +156,30 @@ class Phase:Codable {
     /// Leakage inductance in Henries
     func LeakageInductance(baseI:Double) -> Double
     {
-        return 2.0 * self.Energy() / (baseI * baseI)
+        return 2.0 * self.old_Energy() / (baseI * baseI)
+    }
+    
+    /// DelVecchio 3e, Eq. 4.20.
+    func Energy() -> Double
+    {
+        var sumLI = 0.0
+        var sumMII = 0.0
+        
+        for row in 0..<M.rows
+        {
+            sumLI += M[row, row]
+            
+            for col in (row + 1)..<M.columns
+            {
+                sumMII += M[row, col]
+            }
+        }
+        
+        return 0.5 * sumLI + sumMII
     }
 
     /// DelVecchio 3e, Eq. 4.20. To calculate leakage inductance (in henries, and in terms of one of the coils), make sure that the current directions are properly set for each coil, then use Lh = 2W/I^2 where W is the energy calculated by this function and I is the rated current for the coil in question. To get the leakage reactance, Lr (in ohms, also in terms of one of the coils), multiply the leakage inductance by 2πf. To get the pu reactance: Lpu = Lr * Irated / Vrated
-    func Energy() -> Double
+    func old_Energy() -> Double
     {
         // DLog("Calculating energy...")
         var sumLI = 0.0

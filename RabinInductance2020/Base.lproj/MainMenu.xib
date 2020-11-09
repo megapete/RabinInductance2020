@@ -682,6 +682,12 @@
                                     <action selector="handleCalculateReactance:" target="II9-PS-IqR" id="CHd-bd-zo5"/>
                                 </connections>
                             </menuItem>
+                            <menuItem title="Calculate Energy" id="hqd-dg-35o">
+                                <modifierMask key="keyEquivalentModifierMask"/>
+                                <connections>
+                                    <action selector="handleCalculateEnergy:" target="II9-PS-IqR" id="ozN-xx-6Oz"/>
+                                </connections>
+                            </menuItem>
                         </items>
                     </menu>
                 </menuItem>
