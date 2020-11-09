@@ -177,7 +177,8 @@ class Section:Codable {
         
         let sumQueue = DispatchQueue(label: "com.huberistech.rabin_inductance_2020.sum")
         
-        var sum = 0.0
+        // var sum = 0.0
+        var scSum = Coil.ScaledReturnType(number: 0)
 
         DispatchQueue.concurrentPerform(iterations: convergenceIterations)
         {
@@ -204,10 +205,11 @@ class Section:Codable {
                 
                 let scaledSum = firstProduct + secondProduct - thirdProduct
                 
-                let checkSum1 = scaledSum.doubleValue
+                // let checkSum1 = scaledSum.doubleValue
                 
                 sumQueue.sync {
-                    sum += checkSum1
+                    // sum += checkSum1
+                    scSum += scaledSum
                 }
             }
             else
@@ -216,17 +218,20 @@ class Section:Codable {
                 let secondProduct = (J_M_NI_scaled * coils[1].Dn[1][i] * coils[0].Cn[1][i])
                 
                 let scaledSum = firstProduct + secondProduct
-                let checkSum1 = scaledSum.doubleValue
+                // let checkSum1 = scaledSum.doubleValue
                 
                 sumQueue.sync {
-                    sum += checkSum1
+                    // sum += checkSum1
+                    scSum += scaledSum
                 }
             }
         }
         
-        let multiplier = π * µ0 * L * N1 * N2
+        let multiplier = Coil.ScaledReturnType(number:π * µ0 * L * N1 * N2)
         
-        result += multiplier * sum
+        // print("Diff: \(sum - scSum.doubleValue)")
+        
+        result += ((π * µ0 * L * N1 * N2) * scSum).doubleValue
         
         assert(!result.isNaN, "NaN discovered!")
         assert(result > 1.0E-12, "Small (or negative) number: \(result)!")

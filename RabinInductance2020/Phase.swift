@@ -18,6 +18,9 @@ class Phase:Codable {
     /// The original Excel design file used to create this phase (if any)
     var xlDesignFile:PCH_ExcelDesignFile? = nil
     
+    /// The Cholesky factorization of M (used to solve positive-definite matrices)
+    var choleskyM:Matrix? = nil
+    
     /// The storage for the inductance matrix for the coils on this phase (private variable)
     private var indMatrixStore:Matrix? = nil
     
@@ -33,6 +36,20 @@ class Phase:Codable {
             if self.indMatrixStore == nil
             {
                 indMatrixStore = self.CalculateInductanceMatrix()
+                
+                // create the Cholesky factorization of the matrix on a background thread
+                let choleskyQueue = DispatchQueue(label: "com.huberistech.rabin_inductance_2020.cholesky")
+                self.choleskyM = Matrix(srcMatrix: self.indMatrixStore!)
+                choleskyQueue.async {
+                    
+                    let posDefCheck = self.choleskyM!.TestPositiveDefinite(overwriteExistingMatrix: true)
+                    
+                    print("This is running")
+                    if !posDefCheck
+                    {
+                        self.choleskyM = nil
+                    }
+                }
             }
             
             return indMatrixStore!
@@ -55,6 +72,9 @@ class Phase:Codable {
         }
     }
     
+    /// A map of the matrix row (key) to Section (value)
+    private var reverseSectionMap:Dictionary<Int, Section> = [:]
+    
     private var sectionMapStore:Dictionary<Int, Int>? = nil
     
     /// A map of the section IDs into the _current_ Inductance Matrix for the phase. The key is the sectionID, the value is the index into the matrix.
@@ -68,6 +88,8 @@ class Phase:Codable {
             
             if self.sectionMapStore == nil
             {
+                // we also need to set up the reverseSectionMap
+                self.reverseSectionMap = [:]
                 // The key is the sectionID, the value is the index into the matrix
                 var result:Dictionary<Int, Int> = [:]
                 
@@ -75,6 +97,7 @@ class Phase:Codable {
                 for nextSection in self.sections
                 {
                     result[nextSection.sectionID] = index
+                    self.reverseSectionMap[index] = nextSection
                     index += 1
                 }
                 
@@ -96,7 +119,7 @@ class Phase:Codable {
     /// Initializer from an Excel design file.
     convenience init(xlDesign:PCH_ExcelDesignFile) {
         
-        let core = Core(realWindowHt: xlDesign.core.windowHeight, radius: xlDesign.core.diameter / 2, windowMultiplier: 1.5)
+        let core = Core(realWindowHt: xlDesign.core.windowHeight, radius: xlDesign.core.diameter / 2, windowMultiplier: 2.5)
         
         var coils:[Coil] = []
         for nextWinding in xlDesign.windings
@@ -126,6 +149,7 @@ class Phase:Codable {
         while allSections.count > 0
         {
             let nextSection = allSections.removeFirst()
+            print("Calculating inductance for: \(nextSection.sectionID)")
             let nextIndex = self.sectionMap[nextSection.sectionID]!
             
             let selfInd = nextSection.SelfInductance()
@@ -156,7 +180,25 @@ class Phase:Codable {
     /// Leakage inductance in Henries
     func LeakageInductance(baseI:Double) -> Double
     {
-        return 2.0 * self.old_Energy() / (baseI * baseI)
+        return 2.0 * self.Energy() / (baseI * baseI)
+    }
+    
+    /// Get the section from the matrix row, using the current sectionMap
+    func SectionFromMatrixRow(_ row:Int) -> Section
+    {
+        guard row < self.M.rows else
+        {
+            DLog("Index out of range")
+            return Section(sectionID: -1, zMin: 0, zMax: 0, N: 0, inNode: 0, outNode: 0)
+        }
+        
+        if let section = self.reverseSectionMap[row]
+        {
+            return section
+        }
+        
+        DLog("I don't know how this can happen")
+        return Section(sectionID: -1, zMin: 0, zMax: 0, N: 0, inNode: 0, outNode: 0)
     }
     
     /// DelVecchio 3e, Eq. 4.20.
@@ -167,11 +209,29 @@ class Phase:Codable {
         
         for row in 0..<M.rows
         {
-            sumLI += M[row, row]
+            let rowParent = self.SectionFromMatrixRow(row).parent!
+            if rowParent.currentDirection == 0
+            {
+                continue
+            }
+            
+            let rowI = rowParent.I
+            
+            sumLI += M[row, row] * rowI * rowI
             
             for col in (row + 1)..<M.columns
             {
-                sumMII += M[row, col]
+                let colParent = self.SectionFromMatrixRow(col).parent!
+                if colParent.currentDirection == 0
+                {
+                    continue
+                }
+                
+                let colI = colParent.I
+                
+                let sign = rowParent.currentDirection != colParent.currentDirection ? -1.0 : 1.0
+                
+                sumMII += M[row, col] * rowI * colI * sign
             }
         }
         

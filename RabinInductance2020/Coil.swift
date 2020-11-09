@@ -90,6 +90,34 @@ class Coil:Codable, Equatable {
                     return exp(scale) * scaledValue
                 }
             }
+            
+            /// This function assumes that the argument 'termArray' is sorted on entry. The new term will be inserted so that the array is still sorted on exit. It is basically a binary search method.
+            static func InsertTerm(_ newTerm:Term, into termArray:inout [Term])
+            {
+                var loIndex = 0
+                var hiIndex = termArray.count - 1
+                
+                while loIndex < hiIndex
+                {
+                    let midPointIndex = (loIndex + hiIndex) / 2
+                    let midPointScale = termArray[midPointIndex].scale
+                    
+                    if midPointScale < newTerm.scale
+                    {
+                        loIndex = midPointIndex + 1
+                    }
+                    else if midPointScale > newTerm.scale
+                    {
+                        hiIndex = midPointIndex - 1
+                    }
+                    else
+                    {
+                        termArray.insert(newTerm, at: midPointIndex)
+                    }
+                }
+                
+                termArray.insert(newTerm, at: loIndex)
+            }
         }
         
         /// An array holding the terms of the ScaledReturnType
@@ -135,9 +163,12 @@ class Coil:Codable, Equatable {
                     // Save the new term
                     let newTerm = Term(scale: b + log(fabs(newValue)), scaledValue: sValue)
                     
+                    Term.InsertTerm(newTerm, into: &resultTerms)
+                    
+                    // print("result term count: \(resultTerms.count)")
                     // Add the term back to the array and sort the array based on the scale
-                    resultTerms.append(newTerm)
-                    resultTerms.sort(by: {$0.scale > $1.scale})
+                    // resultTerms.append(newTerm)
+                    // resultTerms.sort(by: {$0.scale > $1.scale})
                 }
                 
                 // If no terms are left, return 0
@@ -155,6 +186,8 @@ class Coil:Codable, Equatable {
                 return result
             }
         }
+        
+        
         
         /// Easy to program, but (I think), less precise way of getting the Double value of the ScaledReturnType (As compared to "doubleValue").
         var totalTrueValue:Double {
@@ -202,6 +235,11 @@ class Coil:Codable, Equatable {
         // Multiply a scalar by a ScaledReturnType and return a ScaledReturnType
         static func * (lhs:Double, rhs:ScaledReturnType) -> ScaledReturnType
         {
+            if lhs == 0
+            {
+                return ScaledReturnType(number: 0)
+            }
+            
             var newTerms:[Coil.ScaledReturnType.Term] = []
             
             for nextTerm in rhs.terms
@@ -225,7 +263,10 @@ class Coil:Codable, Equatable {
                 {
                     let newScale = lhsScale + nextRhsTerm.scale
                     let newValue = lhsValue * nextRhsTerm.scaledValue
-                    newTerms.append(Coil.ScaledReturnType.Term(scale: newScale, scaledValue: newValue))
+                    if newValue != 0
+                    {
+                        newTerms.append(Coil.ScaledReturnType.Term(scale: newScale, scaledValue: newValue))
+                    }
                 }
             }
             

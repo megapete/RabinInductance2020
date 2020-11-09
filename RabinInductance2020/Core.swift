@@ -18,7 +18,7 @@ struct Core:Codable {
     
     // Update 2020-11-06: I have recreated the J0 and Jn (1-200) calculations for STME-0400 LV winding. There are a few things that I have learned:
     //  1) It is NOT a good idea to center the coils in the core window. There is no discernable effect on the overall calculation of J at a given point and as noted above, doing so seems to cause negative mutual inductances.
-    //  2) The same reasons for NOT centering the coils is the real reason for using some "important" multiple of the actual core window. My reasoning is this: using the real window very nearly centers the coil in the window, causing the same issue as pruposelt centering the coil in an enlarged window. That is, we WANT the coil to be skewed toward the bottom as far as these calculations go.
+    //  2) The same reasons for NOT centering the coils is the real reason for using some "important" multiple of the actual core window. My reasoning is this: using the real window very nearly centers the coil in the window, causing the same issue as purposely centering the coil in an enlarged window. That is, we WANT the coil to be skewed toward the bottom as far as these calculations go.
     //  3) I have not yet determined why the inductance matrix goes "non-positive-definite" when the window multiple is too large. i believe it has something to do with the small fractions (z/L) that occur, meaning that either there are zeroes occuring or equalities that should not occur somewhere. This will be the focus of my next analysis.
     
     var windowHtMultiplier:Double

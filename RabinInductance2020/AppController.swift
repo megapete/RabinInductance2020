@@ -539,7 +539,8 @@ class AppController: NSObject {
     
     @IBAction func handleCalculateEnergy(_ sender: Any) {
         
-        print("Energy (old way): \(self.currentPhase!.old_Energy())")
+        print("Calculating inductance matrix...")
+        // print("Energy (old way): \(self.currentPhase!.old_Energy())")
         print("Energy (new way): \(self.currentPhase!.Energy())")
     }
     
