@@ -91,7 +91,7 @@ class Coil:Codable, Equatable {
                 }
             }
             
-            /// This function assumes that the argument 'termArray' is sorted on entry. The new term will be inserted so that the array is still sorted on exit. It is basically a binary search method.
+            /// This function assumes that the argument 'termArray' is sorted by increasing scale on entry. The new term will be inserted so that the array is still sorted on exit. It is basically a binary search method.
             static func InsertTerm(_ newTerm:Term, into termArray:inout [Term])
             {
                 var loIndex = 0
@@ -128,22 +128,22 @@ class Coil:Codable, Equatable {
             get {
                 
                 // Sort the terms array based on the scale
-                var resultTerms = self.terms.sorted(by: {$0.scale > $1.scale})
+                var resultTerms = self.terms.sorted(by: {$0.scale < $1.scale})
                 
                 // Keep going until there is only a single term left
                 while resultTerms.count > 1
                 {
                     // Remove and store the first term - if it's zero, go back to the top of the loop
-                    let firstTerm = resultTerms.removeFirst()
+                    let firstTerm = resultTerms.removeLast()
                     if firstTerm.scaledValue == 0
                     {
                         continue
                     }
                     // Remove and store the second term. If it's zero. reinsert the first term (at the beginning) and start the loop again
-                    let secondTerm = resultTerms.removeFirst()
+                    let secondTerm = resultTerms.removeLast()
                     if secondTerm.scaledValue == 0
                     {
-                        resultTerms.insert(firstTerm, at: 0)
+                        resultTerms.append(firstTerm)
                         continue
                     }
                     
@@ -303,8 +303,9 @@ class Coil:Codable, Equatable {
                 let sValue = newValue < 0 ? -1.0 : 1.0
                 let newTerm = Term(scale: b + log(fabs(newValue)), scaledValue: sValue)
                 
-                resultTerms.append(newTerm)
-                resultTerms.sort(by: {$0.scale > $1.scale})
+                Term.InsertTerm(newTerm, into: &resultTerms)
+                // resultTerms.append(newTerm)
+                // resultTerms.sort(by: {$0.scale > $1.scale})
             }
             
             if resultTerms.count == 0
