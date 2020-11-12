@@ -165,7 +165,7 @@ class Section:Codable {
         }
         
         let coils:[Coil] = [selfCoil, otherCoil].sorted(by: {$0.innerRadius <= $1.innerRadius})
-        let isSameRadialPosition = selfCoil.innerRadius == otherCoil.innerRadius
+        let isSameRadialPosition = fabs(selfCoil.innerRadius - otherCoil.innerRadius) < 0.001
         let sections:[Section] = [self, otherSection].sorted(by: {$0.parent!.innerRadius <= $1.parent!.innerRadius})
         
         let N1 = sections[0].N
@@ -195,7 +195,7 @@ class Section:Codable {
             let J1n = sections[0].Jn[n]
             let J2n = sections[1].Jn[n]
             
-            // I was wondering why DelVecchio 3e, Eq. 9.98 was multiplying the second term by N^2/N^2 and I think that the reason is to stabilize the numbers in the sum.
+            // I was wondering why DelVecchio 3e, Eq. 9.98 was multiplying the second term by N1^2/N2^2 and I think that the reason is to stabilize the numbers in the sum.
             let J_M_NI_exp = log(fabs(J1n)) + log(fabs(J2n)) + log(m) * -4 - log(N1 * I1 * N2 * I2)
             // We need to set the minus sign if only one of the Jn values is negative (and Swift doesn't have an XOR, so...)
             let JJ_value = (J1n < 0) != (J2n < 0) ? -1.0 : 1.0
