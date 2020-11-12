@@ -8,8 +8,8 @@
 import Foundation
 import Accelerate
 
-fileprivate let relError = 1.0E-8
-fileprivate let absError = 1.0E-12
+fileprivate let relError = 1.0E-12
+fileprivate let absError = 1.0E-15
 
 let convergenceIterations = 200
 
@@ -881,7 +881,7 @@ class Coil:Codable, Equatable {
     /// DelVecchio 3e, Eq. 9.59(a)
     static func M0(x:Double) -> Double
     {
-        let quadrature = Quadrature(integrator: .qags(maxIntervals: 10), absoluteTolerance: absError, relativeTolerance: relError)
+        let quadrature = Quadrature(integrator: .qag(pointsPerInterval: .sixtyOne, maxIntervals: 100), absoluteTolerance: absError, relativeTolerance: relError)
         
         let integrationResult = quadrature.integrate(over: 0.0...(π / 2.0)) { theta in
             
@@ -904,7 +904,7 @@ class Coil:Codable, Equatable {
     /// DelVecchio 3e, Eq. 9.59(b)
     static func M1(x:Double) -> Double
     {
-        let quadrature = Quadrature(integrator: .qags(maxIntervals: 10), absoluteTolerance: absError, relativeTolerance: relError)
+        let quadrature = Quadrature(integrator: .qag(pointsPerInterval: .sixtyOne, maxIntervals: 100), absoluteTolerance: absError, relativeTolerance: relError)
         
         let integrationResult = quadrature.integrate(over: 0.0...(π / 2.0)) { theta in
             
@@ -931,7 +931,7 @@ class Coil:Codable, Equatable {
         
         if a == 0.0
         {
-            let quadrature = Quadrature(integrator: .qags(maxIntervals: 10), absoluteTolerance: absError, relativeTolerance: relError)
+            let quadrature = Quadrature(integrator: .qag(pointsPerInterval: .sixtyOne, maxIntervals: 100), absoluteTolerance: absError, relativeTolerance: relError)
             
             let integrationResult = quadrature.integrate(over: 0.0...(π / 2.0)) { theta in
                 

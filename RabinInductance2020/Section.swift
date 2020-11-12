@@ -145,8 +145,10 @@ class Section:Codable {
         }
                 
         let multiplier = π * µ0 * L * N * N
+        let sumValue = scSum.doubleValue
+        let test = multiplier * sumValue
         
-        result += multiplier * scSum.doubleValue
+        result += multiplier * sumValue
         
         assert(!result.isNaN, "NaN discovered!")
         
@@ -236,7 +238,11 @@ class Section:Codable {
         result += ((π * µ0 * L * N1 * N2) * scSum).doubleValue
         
         assert(!result.isNaN, "NaN discovered!")
-        assert(result > 1.0E-12, "Small (or negative) number: \(result)!")
+        
+        if result < 0
+        {
+            print("Neg: \(self.sectionID) to \(otherSection.sectionID) : \(result)")
+        }
         
         return result
     }
