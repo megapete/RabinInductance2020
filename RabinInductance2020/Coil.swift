@@ -859,8 +859,9 @@ class Coil:Codable, Equatable {
     static func IntegralOf_tL1_t_dt(from x1:Double, to x2:Double) -> ScaledReturnType
     {
         let unscaledValue = x1 * Coil.M0(x: x1) - x2 * Coil.M0(x: x2) + (x1 * x1 - x2 * x2) / π + Coil.IntegralOf_M0_t_dt(from: x1, to: x2)
+        let sValue = unscaledValue < 0 ? -1.0 : 1.0
         
-        var result = ScaledReturnType(scale: 0, value: unscaledValue)
+        var result = ScaledReturnType(scale: log(fabs(unscaledValue)), value: sValue)
         result += Coil.IntegralOf_tI1_t_dt(from: x1, to: x2)
         
         return result

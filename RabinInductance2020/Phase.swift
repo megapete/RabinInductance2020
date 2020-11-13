@@ -119,7 +119,7 @@ class Phase:Codable {
     /// Initializer from an Excel design file.
     convenience init(xlDesign:PCH_ExcelDesignFile) {
         
-        let core = Core(realWindowHt: xlDesign.core.windowHeight, radius: xlDesign.core.diameter / 2, windowMultiplier: 2.5)
+        let core = Core(realWindowHt: xlDesign.core.windowHeight, radius: xlDesign.core.diameter / 2, windowMultiplier: 2.0)
         
         var coils:[Coil] = []
         for nextWinding in xlDesign.windings

@@ -127,7 +127,7 @@ class Section:Codable {
             let Jn = self.Jn[n]
             
             // I was wondering why DelVecchio 3e, Eq. 9.98 was multiplying the second term by N^2/N^2 and I think that the reason is to stabilize the numbers in the sum.
-            let J_M_NI_exp = log(fabs(Jn)) * 2 + log(m) * -4 + log(N * I) * -2
+            let J_M_NI_exp = log(fabs(Jn)) * 2 - log(m) * 4 - log(N * I) * 2
             let J_M_NI_scaled = Coil.ScaledReturnType(scale: J_M_NI_exp, value: 1.0)
             
             let firstProduct = (J_M_NI_scaled * (coil.En[1][i] * coil.Integral_I1n[1][i]))
@@ -146,7 +146,6 @@ class Section:Codable {
                 
         let multiplier = π * µ0 * L * N * N
         let sumValue = scSum.doubleValue
-        let test = multiplier * sumValue
         
         result += multiplier * sumValue
         
@@ -196,7 +195,7 @@ class Section:Codable {
             let J2n = sections[1].Jn[n]
             
             // I was wondering why DelVecchio 3e, Eq. 9.98 was multiplying the second term by N1^2/N2^2 and I think that the reason is to stabilize the numbers in the sum.
-            let J_M_NI_exp = log(fabs(J1n)) + log(fabs(J2n)) + log(m) * -4 - log(N1 * I1 * N2 * I2)
+            let J_M_NI_exp = log(fabs(J1n)) + log(fabs(J2n)) - log(m) * 4 - log(N1 * I1 * N2 * I2)
             // We need to set the minus sign if only one of the Jn values is negative (and Swift doesn't have an XOR, so...)
             let JJ_value = (J1n < 0) != (J2n < 0) ? -1.0 : 1.0
             let J_M_NI_scaled = Coil.ScaledReturnType(scale: J_M_NI_exp, value: JJ_value)
@@ -231,7 +230,7 @@ class Section:Codable {
             }
         }
         
-        let multiplier = Coil.ScaledReturnType(number:π * µ0 * L * N1 * N2)
+        // let multiplier = Coil.ScaledReturnType(number:π * µ0 * L * N1 * N2)
         
         // print("Diff: \(sum - scSum.doubleValue)")
         
@@ -239,10 +238,12 @@ class Section:Codable {
         
         assert(!result.isNaN, "NaN discovered!")
         
+        /*
         if result < 0
         {
             print("Neg: \(self.sectionID) to \(otherSection.sectionID) : \(result)")
         }
+        */
         
         return result
     }
