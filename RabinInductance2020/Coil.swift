@@ -164,11 +164,6 @@ class Coil:Codable, Equatable {
                     let newTerm = Term(scale: b + log(fabs(newValue)), scaledValue: sValue)
                     
                     Term.InsertTerm(newTerm, into: &resultTerms)
-                    
-                    // print("result term count: \(resultTerms.count)")
-                    // Add the term back to the array and sort the array based on the scale
-                    // resultTerms.append(newTerm)
-                    // resultTerms.sort(by: {$0.scale > $1.scale})
                 }
                 
                 // If no terms are left, return 0
@@ -186,8 +181,6 @@ class Coil:Codable, Equatable {
                 return result
             }
         }
-        
-        
         
         /// Easy to program, but (I think), less precise way of getting the Double value of the ScaledReturnType (As compared to "doubleValue").
         var totalTrueValue:Double {
