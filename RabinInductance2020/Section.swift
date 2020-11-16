@@ -182,6 +182,8 @@ class Section:Codable {
         
         // var sum = 0.0
         var scSum = Coil.ScaledReturnType(number: 0)
+        
+        let NINI_exp = log(N1 * I1 * N2 * I2)
 
         DispatchQueue.concurrentPerform(iterations: convergenceIterations)
         {
@@ -195,7 +197,7 @@ class Section:Codable {
             let J2n = sections[1].Jn[n]
             
             // I was wondering why DelVecchio 3e, Eq. 9.98 was multiplying the second term by N1^2/N2^2 and I think that the reason is to stabilize the numbers in the sum.
-            let J_M_NI_exp = log(fabs(J1n)) + log(fabs(J2n)) - log(m) * 4 - log(N1 * I1 * N2 * I2)
+            let J_M_NI_exp = log(fabs(J1n)) + log(fabs(J2n)) - log(m) * 4 - NINI_exp
             // We need to set the minus sign if only one of the Jn values is negative (and Swift doesn't have an XOR, so...)
             let JJ_value = (J1n < 0) != (J2n < 0) ? -1.0 : 1.0
             let J_M_NI_scaled = Coil.ScaledReturnType(scale: J_M_NI_exp, value: JJ_value)
@@ -206,9 +208,11 @@ class Section:Codable {
                 let secondProduct = (J_M_NI_scaled * (coils[0].Fn[1][i] * coils[0].Cn[1][i]))
                 let thirdProduct = ((π / 2) * (J_M_NI_scaled * coils[0].Integral_L1n[1][i]))
                 
+                let test = coils[0].Integral_L1n[1][i]
+                
                 let scaledSum = firstProduct + secondProduct - thirdProduct
                 
-                // let checkSum1 = scaledSum.doubleValue
+                let checkSum1 = scaledSum.doubleValue
                 
                 sumQueue.sync {
                     // sum += checkSum1
