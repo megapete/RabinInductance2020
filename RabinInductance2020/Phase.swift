@@ -44,10 +44,14 @@ class Phase:Codable {
                     
                     let posDefCheck = self.choleskyM!.TestPositiveDefinite(overwriteExistingMatrix: true)
                     
-                    print("This is running")
+                    // print("This is running")
                     if !posDefCheck
                     {
                         self.choleskyM = nil
+                    }
+                    else
+                    {
+                        DLog("Inductance matrix is positive definite")
                     }
                 }
             }
@@ -146,6 +150,7 @@ class Phase:Codable {
         
         let result = Matrix(type: .Double, rows: UInt(allSections.count), columns: UInt(allSections.count))
         
+        var numNegativeMuties = 0
         while allSections.count > 0
         {
             let nextSection = allSections.removeFirst()
@@ -159,10 +164,18 @@ class Phase:Codable {
             {
                 let otherIndex = sectionMap[otherSection.sectionID]!
                 let mutInd = nextSection.MutualInductanceTo(otherSection: otherSection)
+                
+                if mutInd < 0
+                {
+                    numNegativeMuties += 1
+                }
+                
                 result[nextIndex, otherIndex] = mutInd
                 result[otherIndex, nextIndex] = mutInd
             }
         }
+        
+        DLog("Number of negative mutual inductances: \(numNegativeMuties)")
         
         return result
     }
