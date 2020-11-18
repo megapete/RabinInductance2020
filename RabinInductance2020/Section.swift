@@ -208,11 +208,11 @@ class Section:Codable {
                 let secondProduct = (J_M_NI_scaled * (coils[0].Fn[1][i] * coils[0].Cn[1][i]))
                 let thirdProduct = ((π / 2) * (J_M_NI_scaled * coils[0].Integral_L1n[1][i]))
                 
-                let test = coils[0].Integral_L1n[1][i]
+                // let test = coils[0].Integral_L1n[1][i]
                 
                 let scaledSum = firstProduct + secondProduct - thirdProduct
                 
-                let checkSum1 = scaledSum.doubleValue
+                // let checkSum1 = scaledSum.doubleValue
                 
                 sumQueue.sync {
                     // sum += checkSum1

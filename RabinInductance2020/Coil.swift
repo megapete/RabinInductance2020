@@ -127,7 +127,7 @@ class Coil:Codable, Equatable {
         var doubleValue:Double {
             get {
                 
-                // Sort the terms array based on the scale
+                // Sort the terms array based on the scale. Note that this is a kinda slow routine, and slows down the whole program.
                 var resultTerms = self.terms.sorted(by: {$0.scale < $1.scale})
                 
                 // Keep going until there is only a single term left
