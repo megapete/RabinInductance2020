@@ -151,10 +151,11 @@ class Phase:Codable {
         let result = Matrix(type: .Double, rows: UInt(allSections.count), columns: UInt(allSections.count))
         
         var numNegativeMuties = 0
+        var interCoilNegativeMuties = 0
         while allSections.count > 0
         {
-            let nextSection = allSections.removeFirst()
-            print("Calculating inductance for: \(nextSection.sectionID)")
+            let nextSection = allSections.removeLast()
+            DLog("Calculating inductance for: \(nextSection.sectionID)", file: "", function: "", line: nil)
             let nextIndex = self.sectionMap[nextSection.sectionID]!
             
             let selfInd = nextSection.SelfInductance()
@@ -168,6 +169,11 @@ class Phase:Codable {
                 if mutInd < 0
                 {
                     numNegativeMuties += 1
+                    
+                    if nextSection.parent! != otherSection.parent!
+                    {
+                        interCoilNegativeMuties += 1
+                    }
                 }
                 
                 result[nextIndex, otherIndex] = mutInd
@@ -176,6 +182,7 @@ class Phase:Codable {
         }
         
         DLog("Number of negative mutual inductances: \(numNegativeMuties)")
+        DLog("Number of negative 'inter-coil' muties: \(interCoilNegativeMuties)")
         
         return result
     }
