@@ -55,6 +55,9 @@ class Matrix:CustomStringConvertible, Equatable, Codable {
     var doubleBuffPtr:UnsafeMutablePointer<__CLPK_doublereal>
     var complexBuffPtr:UnsafeMutablePointer<__CLPK_doublecomplex>
     
+    /// Storage for the IPIV array when a matrix is stored as its LU-decomposition
+    var ipivBuff:[__CLPK_integer] = []
+    
     /// The number of rows in the matrix
     let rows:Int
     /// The number of columns in the matrix
@@ -631,6 +634,38 @@ class Matrix:CustomStringConvertible, Equatable, Codable {
         {
             A.deallocate()
         }
+        
+        return true
+    }
+    
+    /// Get and convert self to its LU-factorization. This routine calls the LAPACK routine DGETRF and should be used when solving using DGETRS.
+    /// - Returns: 'true' if the conversion was successful (and self is now in LU form), otherwise 'false' (self is unchanged)
+    func ConvertToLU() -> Bool
+    {
+        var m = __CLPK_integer(self.rows)
+        var n = __CLPK_integer(self.columns)
+        var lda = m
+        let ipivDim = Int(min(m, n))
+        self.ipivBuff = Array(repeating: 0, count: ipivDim)
+        var info = __CLPK_integer(0)
+        let A = UnsafeMutablePointer<__CLPK_doublereal>.allocate(capacity: self.rows * self.columns)
+        A.assign(from: self.doubleBuffPtr, count: self.rows * self.columns)
+        
+        dgetrf_(&m, &n, A, &lda, &self.ipivBuff, &info)
+        
+        if info < 0
+        {
+            PCH_ErrorAlert(message: "DGETRF Error", info: "Illegal Argument #\(-info)")
+            return false
+        }
+        else if info > 0
+        {
+            PCH_ErrorAlert(message: "DGETRF Error", info: "The element U(\(info),\(info)) is exactly zero.")
+            return false
+        }
+        
+        self.doubleBuffPtr.deallocate()
+        self.doubleBuffPtr = A
         
         return true
     }
