@@ -51,6 +51,15 @@ class Matrix:CustomStringConvertible, Equatable, Codable {
     
     let type:NumberType
     
+    /// The factorization (if any) that the matrix currently in memory has had applied
+    enum FactorizationType:Int {
+        case none
+        case Cholesky
+        case LU
+    }
+    
+    var factorizationType:FactorizationType = .none
+    
     /// The actual buffers that hold the matrix
     var doubleBuffPtr:UnsafeMutablePointer<__CLPK_doublereal>
     var complexBuffPtr:UnsafeMutablePointer<__CLPK_doublecomplex>
@@ -67,9 +76,11 @@ class Matrix:CustomStringConvertible, Equatable, Codable {
     enum CodingKeys: CodingKey {
         
         case type
+        case factType
         case rows
         case columns
         case buffer
+        case ipiv
     }
     
     /// The type __CLPK_doublecomplex is actually a struct, and not Codable by default. We need to make an interface that is codable, which is actually ridiculously simple.
@@ -125,6 +136,8 @@ class Matrix:CustomStringConvertible, Equatable, Codable {
         self.type = srcMatrix.type
         self.rows = srcMatrix.rows
         self.columns = srcMatrix.columns
+        self.factorizationType = srcMatrix.factorizationType
+        self.ipivBuff = srcMatrix.ipivBuff
         
         if self.type == .Double
         {
@@ -159,6 +172,11 @@ class Matrix:CustomStringConvertible, Equatable, Codable {
             
             let storedType = try storedValues.decode(Int.self, forKey: .type)
             self.type = NumberType(rawValue: storedType)!
+            
+            let storedFactType = try storedValues.decode(Int.self, forKey: .factType)
+            self.factorizationType = FactorizationType(rawValue: storedFactType)!
+            
+            self.ipivBuff = try storedValues.decode([__CLPK_integer].self, forKey: .ipiv)
             
             self.rows = try storedValues.decode(Int.self, forKey: .rows)
             self.columns = try storedValues.decode(Int.self, forKey: .columns)
@@ -198,8 +216,10 @@ class Matrix:CustomStringConvertible, Equatable, Codable {
         do {
             var container = encoder.container(keyedBy: CodingKeys.self)
             try container.encode(self.type.rawValue, forKey: .type)
+            try container.encode(self.factorizationType.rawValue, forKey: .factType)
             try container.encode(self.rows, forKey: .rows)
             try container.encode(self.columns, forKey: .columns)
+            try container.encode(self.ipivBuff, forKey: .ipiv)
             
             if self.type == .Double
             {
@@ -596,7 +616,7 @@ class Matrix:CustomStringConvertible, Equatable, Codable {
         return row < self.rows && column < self.columns
     }
     
-    /// General matrix solver (slowest method) for AX=B, where A is 'self'. In the interest of speed, we pass the 'B' matrix as a pointer instead of a matrix. **NOTE** IT IS ASSUMED THAT A.rows == B.rows (this fact is NOT checked by this routine).
+    /// General matrix solver (slowest method) for AX=B, where A is 'self'. In the interest of speed, we pass the 'B' matrix as a pointer instead of a matrix.  **NOTE** IT IS ASSUMED THAT A.rows == B.rows (this fact is NOT checked by this routine).
     /// - Parameter B: On entry, the matrix B (as in AX=B). On successful exit, the solution matrix X
     /// - Parameter numBcols: The number of columns in B (equal to 1 for a vector)
     /// - Parameter overwriteAMatrix: If 'true', self will be overwritten and on exit will hold the LU factorization of A
@@ -670,7 +690,31 @@ class Matrix:CustomStringConvertible, Equatable, Codable {
         return true
     }
     
-    /// Solve AX=B where A is a positive definite matrix, and instead of A, use the Cholesky factorization of A (which should have been created using DPOTRF). **NOTE**: In the interest of better performance. there is NO checking done in this routine.
+    /// Solve AX=B where A is a square matrix that has been converted to its LU-factorization using DGETRF. **NOTE**: In the interest of better performance. there is NO checking done in this routine. The calling routine should make sure that this matrix is in LU form (by checking the 'factorizationType' ivar).
+    /// - Parameter B: On entry, the general matrix B (as in AX=B). On successful exit, the solution matrix X
+    /// - Parameter numBcols: The number of columns in B (equal to 1 for a vector)
+    /// - Returns: 'true' if the call was successful, otherwise 'false'
+    func SolveForLUfactorization(B: UnsafeMutablePointer<__CLPK_doublereal>, numBcols:Int) -> Bool
+    {
+        var trans:Int8 = 78 // 'N'
+        var n = __CLPK_integer(self.rows)
+        var lda = n
+        var ldb = n
+        var nrhs = __CLPK_integer(numBcols)
+        var info = __CLPK_integer(0)
+        
+        dgetrs_(&trans, &n, &nrhs, self.doubleBuffPtr, &lda, &self.ipivBuff, B, &ldb, &info)
+        
+        if info < 0
+        {
+            PCH_ErrorAlert(message: "DGETRS Error", info: "Illegal Argument #\(-info)")
+            return false
+        }
+        
+        return true
+    }
+    
+    /// Solve AX=B where A is a positive definite matrix, and instead of A, use the Cholesky factorization of A (which should have been created using DPOTRF). **NOTE**: In the interest of better performance. there is NO checking done in this routine. The calling routine should make sure that this matrix is in Cholesky form (by checking the 'factorizationType' ivar).
     /// - Parameter B: On entry, the general matrix B (as in AX=B). On successful exit, the solution matrix X
     /// - Parameter numBcols: The number of columns in B (equal to 1 for a vector)
     /// - Returns: 'true' if the call was successful, otherwise 'false'

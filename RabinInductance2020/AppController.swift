@@ -408,6 +408,23 @@ class AppController: NSObject {
             print("ERROR: solvedPosDefX not equal to X")
         }
         
+        let luA = Matrix(srcMatrix: A)
+        let _ = luA.ConvertToLU()
+        let solvedLuX = Matrix(srcMatrix: B)
+        if luA.SolveForLUfactorization(B: solvedLuX.doubleBuffPtr, numBcols: 1)
+        {
+            print("Solved as LU-factorization!")
+        }
+        
+        if solvedLuX == X
+        {
+            print("solvedLuX equals X")
+        }
+        else
+        {
+            print("ERROR: solvedLuX not equal to X")
+        }
+        
         // let _ = MatrixDisplay(windowTitle: "Solved Positive Definite X", matrix: solvedPosDefX)
     }
     
