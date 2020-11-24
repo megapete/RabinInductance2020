@@ -147,7 +147,7 @@ class AppController: NSObject {
     
     @IBAction func handleTestMatrixSave(_ sender: Any) {
         
-        let testMatrix = Matrix(type: .Double, rows: 3, columns: 5)
+        let testMatrix = Matrix(numType: .Double, rows: 3, columns: 5)
         
         var value = 1.0
         for i in 0..<3
@@ -291,7 +291,7 @@ class AppController: NSObject {
     
     @IBAction func handleTest4(_ sender: Any) {
         
-        let A = Matrix(type: .Double, rows: 8, columns: 8)
+        let A = Matrix(numType: .Double, rows: 8, columns: 8)
         for i in 0..<8
         {
             for j in 0..<8
@@ -302,7 +302,7 @@ class AppController: NSObject {
         
         let _ = MatrixDisplay(windowTitle: "A-matrix", matrix: A)
         
-        let X = Matrix(type: .Double, rows: 8, columns: 1)
+        let X = Matrix(numType: .Double, rows: 8, columns: 1)
         
         var nextNum = 5.0
         for i in 0..<8
@@ -360,7 +360,7 @@ class AppController: NSObject {
         
         print("Reactance (pu): \(phase.LeakageReactancePU(baseVA: 10.0E6 / 3.0, baseI: 83.67))")
         
-        let X = Matrix(type: .Double, rows: UInt(totalSections), columns: 1)
+        let X = Matrix(numType: .Double, rows: UInt(totalSections), columns: 1)
         for i in 0..<(totalSections)
         {
             X[i, 0] = Double.random(in: 0.5...2.5)

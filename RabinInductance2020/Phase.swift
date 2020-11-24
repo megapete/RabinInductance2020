@@ -148,7 +148,7 @@ class Phase:Codable {
     {
         var allSections = self.sections
         
-        let result = Matrix(type: .Double, rows: UInt(allSections.count), columns: UInt(allSections.count))
+        let result = Matrix(numType: .Double, rows: UInt(allSections.count), columns: UInt(allSections.count))
         
         var numNegativeMuties = 0
         var interCoilNegativeMuties = 0

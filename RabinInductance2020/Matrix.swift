@@ -24,7 +24,7 @@ class Matrix:CustomStringConvertible, Equatable, Codable {
                 result += "|"
                 for i in 0..<self.columns
                 {
-                    if self.type == .Double
+                    if self.numType == .Double
                     {
                         let number:Double = self[j, i]
                         result.append(String(format: " % 6.3f", number))
@@ -43,13 +43,21 @@ class Matrix:CustomStringConvertible, Equatable, Codable {
         }
     }
     
+    /// Different matrix types that we accept (this may grow in the future)
+    enum MatrixType:Int {
+        case general
+        case diagonal
+    }
+    
+    let matrixType:MatrixType
+    
     /// The two number types that we allow
     enum NumberType:Int {
         case Double
         case Complex
     }
     
-    let type:NumberType
+    let numType:NumberType
     
     /// The factorization (if any) that the matrix currently in memory has had applied
     enum FactorizationType:Int {
@@ -75,7 +83,8 @@ class Matrix:CustomStringConvertible, Equatable, Codable {
     /// Required enum to make this class Codable
     enum CodingKeys: CodingKey {
         
-        case type
+        case matrixType
+        case numType
         case factType
         case rows
         case columns
@@ -97,33 +106,40 @@ class Matrix:CustomStringConvertible, Equatable, Codable {
     }
     
     /// The designated initializer for the class. Note that the rows and columns must be passed as UInts (to enforce >0 rules at the compiler level) but are immediately converted to Ints internally to keep from having to wrap things in Int()
-    init(type:NumberType, rows:UInt, columns:UInt) {
+    init(matrixType:MatrixType = .general, numType:NumberType, rows:UInt, columns:UInt) {
         
-        self.type = type
+        self.numType = numType
+        self.matrixType = matrixType
         
         // force vectors to have a single column instead of a single row
         if rows == 1
         {
             self.columns = 1
-            self.rows = Int(columns)
+            self.rows = matrixType == .diagonal ? 1 : Int(columns)
         }
         else
         {
             self.rows = Int(rows)
-            self.columns = Int(columns)
+            self.columns = matrixType == .diagonal ? self.rows : Int(columns) // force columns = rows for diagonal
         }
         
-        if type == .Double
+        var requiredMemoryCapacity = self.rows // diagonal
+        if matrixType == .general
         {
-            self.doubleBuffPtr = UnsafeMutablePointer<__CLPK_doublereal>.allocate(capacity: Int(rows * columns))
-            self.doubleBuffPtr.assign(repeating: 0.0, count: Int(rows * columns))
+            requiredMemoryCapacity *= self.columns
+        }
+        
+        if numType == .Double
+        {
+            self.doubleBuffPtr = UnsafeMutablePointer<__CLPK_doublereal>.allocate(capacity: requiredMemoryCapacity)
+            self.doubleBuffPtr.assign(repeating: 0.0, count: requiredMemoryCapacity)
             // This is easier than trying to assign nil to the pointer
             self.complexBuffPtr = UnsafeMutablePointer<__CLPK_doublecomplex>.allocate(capacity: 1)
         }
         else
         {
-            self.complexBuffPtr = UnsafeMutablePointer<__CLPK_doublecomplex>.allocate(capacity: Int(rows * columns))
-            self.complexBuffPtr.assign(repeating: __CLPK_doublecomplex(r: 0.0, i: 0.0), count: Int(rows * columns))
+            self.complexBuffPtr = UnsafeMutablePointer<__CLPK_doublecomplex>.allocate(capacity: requiredMemoryCapacity)
+            self.complexBuffPtr.assign(repeating: __CLPK_doublecomplex(r: 0.0, i: 0.0), count: requiredMemoryCapacity)
             // This is easier than trying to assign nil to the pointer
             self.doubleBuffPtr = UnsafeMutablePointer<__CLPK_doublereal>.allocate(capacity: 1)
         }
@@ -133,22 +149,29 @@ class Matrix:CustomStringConvertible, Equatable, Codable {
     /// - Parameter srcMatrix: The matrix to copy
     init(srcMatrix:Matrix)
     {
-        self.type = srcMatrix.type
+        self.numType = srcMatrix.numType
         self.rows = srcMatrix.rows
         self.columns = srcMatrix.columns
         self.factorizationType = srcMatrix.factorizationType
         self.ipivBuff = srcMatrix.ipivBuff
+        self.matrixType = srcMatrix.matrixType
         
-        if self.type == .Double
+        var requiredMemoryCapacity = self.rows // diagonal
+        if srcMatrix.matrixType == .general
         {
-            self.doubleBuffPtr = UnsafeMutablePointer<__CLPK_doublereal>.allocate(capacity: self.rows * self.columns)
-            self.doubleBuffPtr.assign(from: srcMatrix.doubleBuffPtr, count: rows * columns)
+            requiredMemoryCapacity *= self.columns
+        }
+        
+        if self.numType == .Double
+        {
+            self.doubleBuffPtr = UnsafeMutablePointer<__CLPK_doublereal>.allocate(capacity: requiredMemoryCapacity)
+            self.doubleBuffPtr.assign(from: srcMatrix.doubleBuffPtr, count: requiredMemoryCapacity)
             self.complexBuffPtr = UnsafeMutablePointer<__CLPK_doublecomplex>.allocate(capacity: 1)
         }
         else
         {
-            self.complexBuffPtr = UnsafeMutablePointer<__CLPK_doublecomplex>.allocate(capacity: self.rows * self.columns)
-            self.complexBuffPtr.assign(from: srcMatrix.complexBuffPtr, count: rows * columns)
+            self.complexBuffPtr = UnsafeMutablePointer<__CLPK_doublecomplex>.allocate(capacity: requiredMemoryCapacity)
+            self.complexBuffPtr.assign(from: srcMatrix.complexBuffPtr, count: requiredMemoryCapacity)
             self.doubleBuffPtr = UnsafeMutablePointer<__CLPK_doublereal>.allocate(capacity: 1)
         }
     }
@@ -156,11 +179,12 @@ class Matrix:CustomStringConvertible, Equatable, Codable {
     /// Dummy initializer
     init()
     {
-        self.type = .Double
+        self.numType = .Double
         self.rows = 0
         self.columns = 0
         self.complexBuffPtr = UnsafeMutablePointer<__CLPK_doublecomplex>.allocate(capacity: 1)
         self.doubleBuffPtr = UnsafeMutablePointer<__CLPK_doublereal>.allocate(capacity: 1)
+        self.matrixType = .general
     }
     
     /// Decoding initializer
@@ -170,8 +194,11 @@ class Matrix:CustomStringConvertible, Equatable, Codable {
             
             let storedValues = try decoder.container(keyedBy: CodingKeys.self)
             
-            let storedType = try storedValues.decode(Int.self, forKey: .type)
-            self.type = NumberType(rawValue: storedType)!
+            let storedMatrixType = try storedValues.decode(Int.self, forKey: .matrixType)
+            self.matrixType = MatrixType(rawValue: storedMatrixType)!
+            
+            let storedType = try storedValues.decode(Int.self, forKey: .numType)
+            self.numType = NumberType(rawValue: storedType)!
             
             let storedFactType = try storedValues.decode(Int.self, forKey: .factType)
             self.factorizationType = FactorizationType(rawValue: storedFactType)!
@@ -181,7 +208,7 @@ class Matrix:CustomStringConvertible, Equatable, Codable {
             self.rows = try storedValues.decode(Int.self, forKey: .rows)
             self.columns = try storedValues.decode(Int.self, forKey: .columns)
             
-            if self.type == .Double
+            if self.numType == .Double
             {
                 let array:[__CLPK_doublereal] = try storedValues.decode([__CLPK_doublereal].self, forKey: .buffer)
                 self.doubleBuffPtr = UnsafeMutablePointer<__CLPK_doublereal>.allocate(capacity: array.count)
@@ -215,22 +242,29 @@ class Matrix:CustomStringConvertible, Equatable, Codable {
         
         do {
             var container = encoder.container(keyedBy: CodingKeys.self)
-            try container.encode(self.type.rawValue, forKey: .type)
+            try container.encode(self.matrixType.rawValue, forKey: .matrixType)
+            try container.encode(self.numType.rawValue, forKey: .numType)
             try container.encode(self.factorizationType.rawValue, forKey: .factType)
             try container.encode(self.rows, forKey: .rows)
             try container.encode(self.columns, forKey: .columns)
             try container.encode(self.ipivBuff, forKey: .ipiv)
             
-            if self.type == .Double
+            var requiredMemoryCapacity = self.rows // diagonal
+            if self.matrixType == .general
             {
-                let buffPtr = UnsafeMutableBufferPointer(start: self.doubleBuffPtr, count: self.rows * self.columns)
+                requiredMemoryCapacity *= self.columns
+            }
+            
+            if self.numType == .Double
+            {
+                let buffPtr = UnsafeMutableBufferPointer(start: self.doubleBuffPtr, count: requiredMemoryCapacity)
                 let buffArray = Array(buffPtr)
                 
                 try container.encode(buffArray, forKey: .buffer)
             }
             else // .Complex
             {
-                let buffPtr = UnsafeMutableBufferPointer(start: self.complexBuffPtr, count: self.rows * self.columns)
+                let buffPtr = UnsafeMutableBufferPointer(start: self.complexBuffPtr, count: requiredMemoryCapacity)
                 var codableArray:[CodableDoubleComplex] = []
                 for nextComplex in buffPtr
                 {
@@ -258,7 +292,7 @@ class Matrix:CustomStringConvertible, Equatable, Codable {
     {
         get {
             
-            if self.type != .Double
+            if self.numType != .Double
             {
                 PCH_ErrorAlert(message: "Subscript error", info: "Illegal type")
                 return Double.nan
@@ -268,13 +302,26 @@ class Matrix:CustomStringConvertible, Equatable, Codable {
                 PCH_ErrorAlert(message: "Subscript error", info: "Subscript out of bounds")
                 return Double.nan
             }
+            
+            if self.matrixType == .diagonal
+            {
+                if row == column
+                {
+                    return self.doubleBuffPtr[row]
+                }
+                else
+                {
+                    return 0.0
+                }
+            }
 
+            // general matrix
             return self.doubleBuffPtr[(column * self.rows) + row]
         }
         
         set {
             
-            if self.type != .Double
+            if self.numType != .Double
             {
                 PCH_ErrorAlert(message: "Subscript error", info: "Illegal type")
                 return
@@ -284,7 +331,19 @@ class Matrix:CustomStringConvertible, Equatable, Codable {
                 PCH_ErrorAlert(message: "Subscript error", info: "Subscript out of bounds")
                 return
             }
+            if self.matrixType == .diagonal && (row != column)
+            {
+                DLog("Unsettable index for diagonal matrix.")
+                return
+            }
+            
+            if self.matrixType == .diagonal
+            {
+                self.doubleBuffPtr[row] = newValue
+                return
+            }
 
+            // general matrix
             self.doubleBuffPtr[(column * self.rows) + row] = newValue
         }
     }
@@ -294,7 +353,7 @@ class Matrix:CustomStringConvertible, Equatable, Codable {
     {
         get {
             
-            if self.type != .Complex
+            if self.numType != .Complex
             {
                 PCH_ErrorAlert(message: "Subscript error", info: "Illegal type")
                 return Complex.ComplexNan
@@ -304,7 +363,22 @@ class Matrix:CustomStringConvertible, Equatable, Codable {
                 PCH_ErrorAlert(message: "Subscript error", info: "Subscript out of bounds")
                 return Complex.ComplexNan
             }
+            
+            if self.matrixType == .diagonal
+            {
+                if row == column
+                {
+                    let clpk_result = self.complexBuffPtr[row]
+                    let result = Complex(real: clpk_result.r, imag: clpk_result.i)
+                    return result
+                }
+                else
+                {
+                    return Complex.ComplexZero
+                }
+            }
 
+            // general matrix
             let clpk_result = self.complexBuffPtr[Int((column * self.rows) + row)]
             let result = Complex(real: clpk_result.r, imag: clpk_result.i)
             return result
@@ -312,7 +386,7 @@ class Matrix:CustomStringConvertible, Equatable, Codable {
         
         set {
             
-            if self.type != .Complex
+            if self.numType != .Complex
             {
                 PCH_ErrorAlert(message: "Subscript error", info: "Illegal type")
                 return
@@ -322,28 +396,49 @@ class Matrix:CustomStringConvertible, Equatable, Codable {
                 PCH_ErrorAlert(message: "Subscript error", info: "Subscript out of bounds")
                 return
             }
+            if self.matrixType == .diagonal && (row != column)
+            {
+                DLog("Unsettable index for diagonal matrix.")
+                return
+            }
 
             let clpk_newValue = __CLPK_doublecomplex(r: newValue.real, i: newValue.imag)
+            
+            if self.matrixType == .diagonal
+            {
+                self.complexBuffPtr[row] = clpk_newValue
+                return
+            }
+            
+            // general matrix
             self.complexBuffPtr[(column * self.rows) + row] = clpk_newValue
         }
     }
     
     static func * (scalar:Double, matrix:Matrix) -> Matrix
     {
-        if matrix.type != .Double
+        if matrix.numType != .Double
         {
             PCH_ErrorAlert(message: "Scalar multiplication error", info: "Illegal type")
             return Matrix()
         }
         
-        let result = Matrix(type: .Double, rows: UInt(matrix.rows), columns: UInt(matrix.columns))
+        let result = Matrix(matrixType: matrix.matrixType, numType: .Double, rows: UInt(matrix.rows), columns: UInt(matrix.columns))
         
         for i in 0..<matrix.columns
         {
-            for j in 0..<matrix.rows
+            if matrix.matrixType == .diagonal
             {
-                let oldNum:Double = matrix[i, j]
-                result[i, j] = oldNum * scalar
+                let oldNum:Double = matrix[i, i]
+                result[i, i] = oldNum * scalar
+            }
+            else // general matrix
+            {
+                for j in 0..<matrix.rows
+                {
+                    let oldNum:Double = matrix[i, j]
+                    result[i, j] = oldNum * scalar
+                }
             }
         }
         
@@ -362,13 +457,13 @@ class Matrix:CustomStringConvertible, Equatable, Codable {
             PCH_ErrorAlert(message: "Matrix multiplication", info: "Mismatched dimensions for multiply")
             return Matrix()
         }
-        if (lhs.type != rhs.type)
+        if (lhs.numType != rhs.numType)
         {
             PCH_ErrorAlert(message: "Matrix multiplication", info: "Mismatched types")
             return Matrix()
         }
         
-        let result = Matrix(type: lhs.type, rows: UInt(lhs.rows), columns: UInt(rhs.columns))
+        let result = Matrix(matrixType: lhs.matrixType, numType: lhs.numType, rows: UInt(lhs.rows), columns: UInt(rhs.columns))
         
         let m = __CLPK_integer(lhs.rows)
         let n = __CLPK_integer(rhs.columns)
@@ -377,7 +472,7 @@ class Matrix:CustomStringConvertible, Equatable, Codable {
         let ldb = n
         let ldc = m
         
-        if lhs.type == .Double
+        if lhs.numType == .Double
         {
             let A = lhs.doubleBuffPtr
             let B = rhs.doubleBuffPtr
@@ -423,7 +518,7 @@ class Matrix:CustomStringConvertible, Equatable, Codable {
     
     static func + (lhs:Matrix, rhs:Matrix) -> Matrix
     {
-        if lhs.type != rhs.type
+        if lhs.numType != rhs.numType
         {
             DLog("Mismatched types!")
             return Matrix()
@@ -441,7 +536,7 @@ class Matrix:CustomStringConvertible, Equatable, Codable {
         {
             for j in 0..<lhs.columns
             {
-                if result.type == .Double
+                if result.numType == .Double
                 {
                     let res:Double = result[i, j]
                     result[i, j] = res + rhs[i, j]
@@ -459,7 +554,7 @@ class Matrix:CustomStringConvertible, Equatable, Codable {
     
     static func += (lhs:Matrix, rhs:Matrix)
     {
-        if lhs.type != rhs.type
+        if lhs.numType != rhs.numType
         {
             DLog("Mismatched types!")
             return
@@ -475,7 +570,7 @@ class Matrix:CustomStringConvertible, Equatable, Codable {
         {
             for j in 0..<lhs.columns
             {
-                if lhs.type == .Double
+                if lhs.numType == .Double
                 {
                     let res:Double = lhs[i, j]
                     lhs[i, j] = res + rhs[i, j]
@@ -491,7 +586,7 @@ class Matrix:CustomStringConvertible, Equatable, Codable {
     
     static func - (lhs:Matrix, rhs:Matrix) -> Matrix
     {
-        if lhs.type != rhs.type
+        if lhs.numType != rhs.numType
         {
             DLog("Mismatched types!")
             return Matrix()
@@ -509,7 +604,7 @@ class Matrix:CustomStringConvertible, Equatable, Codable {
         {
             for j in 0..<lhs.columns
             {
-                if result.type == .Double
+                if result.numType == .Double
                 {
                     let res:Double = result[i, j]
                     result[i, j] = res - rhs[i, j]
@@ -527,7 +622,7 @@ class Matrix:CustomStringConvertible, Equatable, Codable {
     
     static func -= (lhs:Matrix, rhs:Matrix)
     {
-        if lhs.type != rhs.type
+        if lhs.numType != rhs.numType
         {
             DLog("Mismatched types!")
             return
@@ -543,7 +638,7 @@ class Matrix:CustomStringConvertible, Equatable, Codable {
         {
             for j in 0..<lhs.columns
             {
-                if lhs.type == .Double
+                if lhs.numType == .Double
                 {
                     let res:Double = lhs[i, j]
                     lhs[i, j] = res - rhs[i, j]
@@ -559,7 +654,7 @@ class Matrix:CustomStringConvertible, Equatable, Codable {
     
     static func == (lhs: Matrix, rhs: Matrix) -> Bool {
         
-        if lhs.type != rhs.type
+        if lhs.numType != rhs.numType
         {
             DLog("Mismatched types!")
             return false
@@ -579,7 +674,7 @@ class Matrix:CustomStringConvertible, Equatable, Codable {
         {
             for j in 0..<lhs.columns
             {
-                if lhs.type == .Double
+                if lhs.numType == .Double
                 {
                     let lhsValue:Double = lhs[i, j]
                     let rhsValue:Double = rhs[i, j]
@@ -747,7 +842,7 @@ class Matrix:CustomStringConvertible, Equatable, Codable {
             return false
         }
         
-        if self.type == .Double
+        if self.numType == .Double
         {
             for i in 0..<self.rows
             {
@@ -792,7 +887,7 @@ class Matrix:CustomStringConvertible, Equatable, Codable {
             return false
         }
         
-        if self.type == .Double
+        if self.numType == .Double
         {
             var uplo:Int8 = 85 // 'U'
             var n = __CLPK_integer(self.rows)
