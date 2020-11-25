@@ -280,6 +280,34 @@ class Matrix:CustomStringConvertible, Equatable, Codable {
         }
     }
     
+    /// Return a general matrix from self. If self is already a general matrix, a deep copy is made instead
+    func asGeneralMatrix() -> Matrix
+    {
+        if self.matrixType == .diagonal
+        {
+            let result = Matrix(matrixType: .general, numType: self.numType, rows: UInt(self.rows), columns: UInt(self.columns))
+            
+            for i in 0..<self.rows
+            {
+                if self.numType == .Double
+                {
+                    let number:Double = self[i, i]
+                    result[i, i] = number
+                }
+                else // Complex
+                {
+                    let number:Complex = self[i, i]
+                    result[i, i] = number
+                }
+            }
+            
+            return result
+        }
+        
+        // Must be general matrix - just make a copy
+        return Matrix(srcMatrix: self)
+    }
+    
     /// We need to take care of memory cleanup ourselves
     deinit {
         
@@ -463,7 +491,30 @@ class Matrix:CustomStringConvertible, Equatable, Codable {
             return Matrix()
         }
         
-        let result = Matrix(matrixType: lhs.matrixType, numType: lhs.numType, rows: UInt(lhs.rows), columns: UInt(rhs.columns))
+        let result = Matrix(matrixType: .general, numType: lhs.numType, rows: UInt(lhs.rows), columns: UInt(rhs.columns))
+        
+        // take care of the special case of AxB where A is a diagonal matrix and B is a vector
+        if lhs.matrixType == .diagonal && rhs.columns == 1
+        {
+            for i in 0..<lhs.rows
+            {
+                if lhs.numType == .Double
+                {
+                    let lhsNum:Double = lhs.doubleBuffPtr[i]
+                    let rhsNum:Double = rhs.doubleBuffPtr[i]
+                    result.doubleBuffPtr[i] = lhsNum * rhsNum
+                }
+                else // Complex
+                {
+                    let lhsNum:Complex = Complex(real: lhs.complexBuffPtr[i].r, imag: lhs.complexBuffPtr[i].i)
+                    let rhsNum:Complex = Complex(real: rhs.complexBuffPtr[i].r, imag: rhs.complexBuffPtr[i].i)
+                    let newValue = lhsNum * rhsNum
+                    result.complexBuffPtr[i] = __CLPK_doublecomplex(r: newValue.real, i: newValue.imag)
+                }
+            }
+            
+            return result
+        }
         
         let m = __CLPK_integer(lhs.rows)
         let n = __CLPK_integer(rhs.columns)
@@ -474,8 +525,8 @@ class Matrix:CustomStringConvertible, Equatable, Codable {
         
         if lhs.numType == .Double
         {
-            let A = lhs.doubleBuffPtr
-            let B = rhs.doubleBuffPtr
+            let A = lhs.matrixType == .diagonal ? lhs.asGeneralMatrix().doubleBuffPtr : lhs.doubleBuffPtr
+            let B = rhs.matrixType == .diagonal ? rhs.asGeneralMatrix().doubleBuffPtr : rhs.doubleBuffPtr
             let C = result.doubleBuffPtr
             
             if rhs.columns == 1
